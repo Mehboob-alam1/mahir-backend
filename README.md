@@ -1,16 +1,16 @@
 # Demoapp - Spring Boot 3 Backend
 
-Backend REST API con Spring Boot 3, Java 17, Maven e MySQL. Architettura a livelli: Controller, Service, Repository, Entity.
+REST API backend with Spring Boot 3, Java 17, Maven and MySQL. Layered architecture: Controller, Service, Repository, Entity.
 
-## Requisiti
+## Requirements
 
 - **Java 17**
-- **Maven 3.6+**
-- **MySQL 8** (in esecuzione su `localhost:3306`)
+- **Maven 3.6+** (or use the included `./mvnw` wrapper)
+- **MySQL 8** (running on `localhost:3306`) — optional if you use the H2 profile
 
-## Configurazione database
+## Database configuration
 
-Prima di avviare l'applicazione, crea il database MySQL:
+Before starting the application with MySQL, create the database:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS demoapp_db
@@ -18,18 +18,18 @@ CREATE DATABASE IF NOT EXISTS demoapp_db
   COLLATE utf8mb4_unicode_ci;
 ```
 
-Configurazione in `application.properties`:
+Configuration in `application.properties`:
 
 - **Database:** `demoapp_db`
 - **Username:** `root`
 - **Password:** `root`
-- **Porta:** `3306`
+- **Port:** `3306`
 
-Modifica username/password in `src/main/resources/application.properties` se il tuo MySQL usa credenziali diverse.
+Change username/password in `src/main/resources/application.properties` if your MySQL uses different credentials.
 
-## Come eseguire il progetto
+## How to run the project
 
-### Da terminale (Maven)
+### From the terminal (Maven)
 
 **With MySQL** (default; MySQL must be running and `demoapp_db` created):
 
@@ -38,7 +38,7 @@ cd demoapp
 ./mvnw spring-boot:run
 ```
 
-**Without MySQL** (in-memory H2 database; useful if MySQL is not set up yet):
+**Without MySQL** (in-memory H2 database; useful when MySQL is not set up yet):
 
 ```bash
 cd demoapp
@@ -47,7 +47,7 @@ cd demoapp
 
 The API works the same; data is lost when the app stops. H2 console: http://localhost:8080/h2-console (JDBC URL: `jdbc:h2:mem:demoapp_db`, user: `sa`, password: empty).
 
-**If the app exits with "Process terminated with exit code: 1"**, see the real error with:
+**If the app exits with "Process terminated with exit code: 1"**, see the actual error with:
 
 ```bash
 ./mvnw spring-boot:run -e
@@ -55,31 +55,31 @@ The API works the same; data is lost when the app stops. H2 console: http://loca
 
 Often the cause is MySQL not running or the database not created. Use the `h2` profile above to run without MySQL.
 
-Oppure, se hai Maven installato globalmente:
+Or, if you have Maven installed globally:
 
 ```bash
 cd demoapp
 mvn clean spring-boot:run
 ```
 
-### Da IDE
+### From an IDE
 
-1. Apri il progetto come progetto Maven.
-2. Esegui la classe `com.example.demoapp.DemoappApplication`.
+1. Open the project as a Maven project.
+2. Run the main class `com.example.demoapp.DemoappApplication`.
 
-L'applicazione sarà disponibile su **http://localhost:8080**.
+The application will be available at **http://localhost:8080**.
 
-## API disponibili
+## Available API endpoints
 
-| Metodo | Endpoint           | Descrizione        |
-|--------|--------------------|--------------------|
-| POST   | `/api/users`       | Crea un utente     |
-| GET    | `/api/users`       | Elenco utenti      |
-| GET    | `/api/users/{id}`  | Dettaglio utente   |
-| PUT    | `/api/users/{id}`  | Aggiorna utente    |
-| DELETE | `/api/users/{id}`  | Elimina utente     |
+| Method | Endpoint           | Description      |
+|--------|--------------------|------------------|
+| POST   | `/api/users`       | Create a user     |
+| GET    | `/api/users`       | List all users    |
+| GET    | `/api/users/{id}`  | Get user by ID    |
+| PUT    | `/api/users/{id}`  | Update a user     |
+| DELETE | `/api/users/{id}`  | Delete a user     |
 
-## Esempio richiesta JSON - Creazione utente
+## Example JSON request — Create user
 
 **POST** `http://localhost:8080/api/users`
 
@@ -88,40 +88,40 @@ L'applicazione sarà disponibile su **http://localhost:8080**.
 Content-Type: application/json
 ```
 
-**Body (esempio):**
+**Body (example):**
 
 ```json
 {
-  "name": "Mario Rossi",
-  "email": "mario.rossi@example.com"
+  "name": "John Doe",
+  "email": "john.doe@example.com"
 }
 ```
 
-**Risposta di esempio (201 Created):**
+**Example response (201 Created):**
 
 ```json
 {
   "id": 1,
-  "name": "Mario Rossi",
-  "email": "mario.rossi@example.com",
+  "name": "John Doe",
+  "email": "john.doe@example.com",
   "createdAt": "2025-02-19T10:30:00"
 }
 ```
 
-### Altri esempi di body
+### More body examples
 
 ```json
 {
-  "name": "Laura Bianchi",
-  "email": "laura.bianchi@example.com"
+  "name": "Jane Smith",
+  "email": "jane.smith@example.com"
 }
 ```
 
-La validazione richiede:
-- `name`: non vuoto, max 100 caratteri
-- `email`: non vuota, formato email valido, max 255 caratteri
+Validation rules:
+- `name`: required, max 100 characters
+- `email`: required, valid email format, max 255 characters
 
-## Struttura del progetto
+## Project structure
 
 ```
 src/main/java/com/example/demoapp/
@@ -144,12 +144,12 @@ src/main/java/com/example/demoapp/
     └── UserService.java
 ```
 
-## Gestione errori
+## Error handling
 
-- **404** – Utente non trovato
-- **409** – Email già presente (duplicato)
-- **400** – Errori di validazione (campi obbligatori, formato email, ecc.)
-- **500** – Errore interno (gestito da `GlobalExceptionHandler`)
+- **404** — User not found
+- **409** — Email already in use (duplicate)
+- **400** — Validation errors (required fields, email format, etc.)
+- **500** — Internal error (handled by `GlobalExceptionHandler`)
 
 ## Build JAR
 
@@ -157,10 +157,10 @@ src/main/java/com/example/demoapp/
 ./mvnw clean package
 ```
 
-Il JAR eseguibile sarà in `target/demoapp-1.0.0-SNAPSHOT.jar`. Esecuzione:
+The runnable JAR will be at `target/demoapp-1.0.0-SNAPSHOT.jar`. Run it with:
 
 ```bash
 java -jar target/demoapp-1.0.0-SNAPSHOT.jar
 ```
 
-Assicurati che MySQL sia avviato e che il database `demoapp_db` esista prima di lanciare l'applicazione.
+Make sure MySQL is running and the `demoapp_db` database exists before starting the application (or use the `h2` profile).
