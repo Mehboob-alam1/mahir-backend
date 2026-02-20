@@ -2,7 +2,6 @@ package com.example.demoapp.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Getter
@@ -10,17 +9,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserRequest {
-
-    @NotBlank(message = "Name is required")
-    @Size(min = 1, max = 100)
-    private String name;
+public class SignInRequest {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
-    @Size(max = 255)
     private String email;
 
-    @Size(min = 6, max = 100, message = "Password must be 6-100 characters")
+    @NotBlank(message = "Password is required")
     private String password;
 }

@@ -7,6 +7,7 @@ import com.example.demoapp.exception.DuplicateResourceException;
 import com.example.demoapp.exception.ResourceNotFoundException;
 import com.example.demoapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,15 +19,20 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public UserResponse createUser(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Esiste già un utente con email: " + request.getEmail());
+            throw new DuplicateResourceException("Email already registered: " + request.getEmail());
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password is required for new users");
         }
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .build();
         user = userRepository.save(user);
         return mapToResponse(user);
@@ -51,11 +57,14 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
 
         if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Esiste già un utente con email: " + request.getEmail());
+            throw new DuplicateResourceException("Email already registered: " + request.getEmail());
         }
 
         user.setName(request.getName());
         user.setEmail(request.getEmail());
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
         user = userRepository.save(user);
         return mapToResponse(user);
     }

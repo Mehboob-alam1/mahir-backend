@@ -69,11 +69,37 @@ mvn clean spring-boot:run
 
 The application will be available at **http://localhost:8080**.
 
+## Authentication (email + password, no OTP)
+
+Auth uses JWT: sign up or sign in to get an `accessToken` and optional `refreshToken`. Send the access token in the `Authorization` header for protected endpoints: `Authorization: Bearer <accessToken>`.
+
+| Method | Endpoint              | Auth | Description                |
+|--------|------------------------|------|----------------------------|
+| POST   | `/auth/signup`         | No   | Register (email, password, name) |
+| POST   | `/auth/signin`         | No   | Login (email, password)    |
+| POST   | `/auth/refresh`        | No   | Refresh access token       |
+| POST   | `/auth/logout`         | No   | Logout (client discards tokens) |
+| GET    | `/auth/check-session`  | Bearer | Check if token is valid    |
+
+**Sign up** — `POST /auth/signup`:
+```json
+{ "name": "John Doe", "email": "john@example.com", "password": "secret123" }
+```
+
+**Sign in** — `POST /auth/signin`:
+```json
+{ "email": "john@example.com", "password": "secret123" }
+```
+
+Response includes `accessToken`, `refreshToken`, `expiresIn` (seconds), and `user` (id, name, email, createdAt).
+
 ## Available API endpoints
+
+All `/api/**` endpoints require `Authorization: Bearer <accessToken>`.
 
 | Method | Endpoint           | Description      |
 |--------|--------------------|------------------|
-| POST   | `/api/users`       | Create a user     |
+| POST   | `/api/users`       | Create a user (requires `password` in body) |
 | GET    | `/api/users`       | List all users    |
 | GET    | `/api/users/{id}`  | Get user by ID    |
 | PUT    | `/api/users/{id}`  | Update a user     |

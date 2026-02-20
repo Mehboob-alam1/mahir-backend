@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserRequest {
+public class SignUpRequest {
 
     @NotBlank(message = "Name is required")
     @Size(min = 1, max = 100)
@@ -21,6 +21,7 @@ public class UserRequest {
     @Size(max = 255)
     private String email;
 
+    @NotBlank(message = "Password is required")
     @Size(min = 6, max = 100, message = "Password must be 6-100 characters")
     private String password;
 }
