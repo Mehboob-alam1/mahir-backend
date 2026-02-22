@@ -19,20 +19,24 @@ public class CategoryDataLoader implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (categoryRepository.count() > 0) return;
-        List<Category> defaultCategories = List.of(
-                Category.builder().name("Plumbing").description("Plumbing and pipe work").build(),
-                Category.builder().name("Electrical").description("Electrical repairs and installations").build(),
-                Category.builder().name("Cleaning").description("Home and office cleaning").build(),
-                Category.builder().name("Carpentry").description("Woodwork and furniture").build(),
-                Category.builder().name("Painting").description("Interior and exterior painting").build(),
-                Category.builder().name("AC & HVAC").description("Air conditioning and heating").build(),
-                Category.builder().name("Pest Control").description("Pest control services").build(),
-                Category.builder().name("Moving").description("Moving and relocation").build(),
-                Category.builder().name("Landscaping").description("Garden and landscaping").build(),
-                Category.builder().name("Other").description("Other home services").build()
-        );
-        categoryRepository.saveAll(defaultCategories);
-        log.info("Loaded {} default service categories", defaultCategories.size());
+        try {
+            if (categoryRepository.count() > 0) return;
+            List<Category> defaultCategories = List.of(
+                    Category.builder().name("Plumbing").description("Plumbing and pipe work").build(),
+                    Category.builder().name("Electrical").description("Electrical repairs and installations").build(),
+                    Category.builder().name("Cleaning").description("Home and office cleaning").build(),
+                    Category.builder().name("Carpentry").description("Woodwork and furniture").build(),
+                    Category.builder().name("Painting").description("Interior and exterior painting").build(),
+                    Category.builder().name("AC & HVAC").description("Air conditioning and heating").build(),
+                    Category.builder().name("Pest Control").description("Pest control services").build(),
+                    Category.builder().name("Moving").description("Moving and relocation").build(),
+                    Category.builder().name("Landscaping").description("Garden and landscaping").build(),
+                    Category.builder().name("Other").description("Other home services").build()
+            );
+            categoryRepository.saveAll(defaultCategories);
+            log.info("Loaded {} default service categories", defaultCategories.size());
+        } catch (Exception e) {
+            log.warn("Could not seed categories (table may not exist yet or already populated): {}", e.getMessage());
+        }
     }
 }
