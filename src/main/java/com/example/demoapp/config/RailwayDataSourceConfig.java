@@ -47,8 +47,9 @@ public class RailwayDataSourceConfig {
             if (query != null && !query.isEmpty()) {
                 jdbcUrl += "?" + query;
             } else {
-                // Railway/cloud Postgres often requires SSL; internal URL may need sslmode=require or allow
-                jdbcUrl += "?sslmode=require";
+                // Internal host (e.g. postgres.railway.internal) often works without strict SSL
+                boolean internal = host != null && host.contains("internal");
+                jdbcUrl += "?" + (internal ? "sslmode=allow" : "sslmode=require");
             }
 
             HikariConfig config = new HikariConfig();
