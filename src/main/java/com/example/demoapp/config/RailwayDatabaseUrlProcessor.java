@@ -20,8 +20,23 @@ public class RailwayDatabaseUrlProcessor implements EnvironmentPostProcessor {
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        String databaseUrl = environment.getProperty(DATABASE_URL);
+        // Railway can expose DATABASE_URL, DATABASE_PRIVATE_URL, or POSTGRES_URL
+        String databaseUrl = firstNonBlank(
+                environment.getProperty("DATABASE_URL"),
+                environment.getProperty("DATABASE_PRIVATE_URL"),
+                environment.getProperty("DATABASE_PUBLIC_URL"),
+                environment.getProperty("POSTGRES_URL")
+        );
+        boolean railwayProfile = isRailwayProfileActive(environment);
         if (databaseUrl == null || databaseUrl.isBlank()) {
+            if (railwayProfile) {
+                throw new IllegalStateException(
+                    "Railway profile is active but DATABASE_URL is not set. "
+                    + "In Railway Dashboard: open your APP service (not Postgres) → Variables → Add variable: "
+                    + "Name = DATABASE_URL, Value = click 'Add reference' and select your Postgres service → DATABASE_URL. "
+                    + "Then redeploy."
+                );
+            }
             return;
         }
         try {
@@ -58,5 +73,19 @@ public class RailwayDatabaseUrlProcessor implements EnvironmentPostProcessor {
         } catch (Exception ignored) {
             // If parsing fails, skip so normal config is used
         }
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) return v;
+        }
+        return null;
+    }
+
+    private static boolean isRailwayProfileActive(ConfigurableEnvironment environment) {
+        String active = environment.getProperty("spring.profiles.active");
+        if (active != null && active.contains("railway")) return true;
+        if (System.getenv("SPRING_PROFILES_ACTIVE") != null && System.getenv("SPRING_PROFILES_ACTIVE").contains("railway")) return true;
+        return false;
     }
 }
