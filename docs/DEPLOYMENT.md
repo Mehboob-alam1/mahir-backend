@@ -95,12 +95,37 @@ Update your **Postman** collection variable `baseUrl` to this URL.
 
 ## Troubleshooting
 
+### "Application failed to respond"
+
+1. **Check deploy logs**  
+   Railway Dashboard → your service → **Deployments** → latest deployment → **View logs**. Look for:
+   - "Started DemoappApplication" = app started.
+   - Any **exception** or "Failed to configure a DataSource" = fix below.
+
+2. **Port**  
+   The app must listen on the port Railway provides. We use `server.port=${PORT:8080}` so this is automatic. If you overrode the start command, keep:  
+   `java -Dspring.profiles.active=railway -jar target/demoapp-1.0.0-SNAPSHOT.jar`
+
+3. **Database**  
+   If logs show a **database/MySQL** error:
+   - Add a **PostgreSQL** service in the same project.
+   - In your **app** service **Variables**, add `DATABASE_URL` as a **reference** to the Postgres service’s `DATABASE_URL`.
+   - Set `SPRING_PROFILES_ACTIVE` = `railway`.
+
+4. **Repo root**  
+   If your repo has the app in a **subfolder** (e.g. `demoapp/`), set **Root Directory** in Railway to that folder (Settings → Build → Root Directory), so `pom.xml` and `target/` are in the root of the build.
+
+5. **Health check**  
+   Open `https://your-app.up.railway.app/health` or `https://your-app.up.railway.app/`. If you get `{"status":"UP","service":"mahir-backend"}`, the app is running and the problem may be caching or the exact URL you’re opening.
+
+### Other issues
+
 | Issue | What to do |
 |-------|------------|
-| Build fails | Check **Deploy logs**. Ensure `./mvnw` and `pom.xml` are in the repo and Java 17 is used. |
-| App crashes at startup | Check **View logs**. Often missing `DATABASE_URL` or wrong `SPRING_PROFILES_ACTIVE`. Ensure Postgres is running and the variable reference is set. |
-| 503 / no response | Wait 1–2 minutes after deploy. If using free tier, the app may sleep after inactivity; the first request can be slow. |
-| DB connection error | Confirm `DATABASE_URL` is referenced from the Postgres service and profile is `railway`. |
+| Build fails | Check **Deploy logs**. Ensure `./mvnw` and `pom.xml` are in the repo root (or set Root Directory). |
+| App crashes at startup | Check **View logs**. Often missing `DATABASE_URL` or Postgres not linked. Set `DATABASE_URL` (reference) and `SPRING_PROFILES_ACTIVE=railway`. |
+| 503 / no response | Wait 1–2 minutes after deploy. Try `/health` or `/`. Free tier may sleep; first request can be slow. |
+| DB connection error | Confirm `DATABASE_URL` is referenced from the Postgres service. |
 
 ---
 
