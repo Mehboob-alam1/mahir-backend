@@ -1,7 +1,9 @@
 package com.example.demoapp.service;
 
+import com.example.demoapp.dto.LocationDto;
 import com.example.demoapp.dto.UserRequest;
 import com.example.demoapp.dto.UserResponse;
+import com.example.demoapp.entity.Location;
 import com.example.demoapp.entity.User;
 import com.example.demoapp.exception.DuplicateResourceException;
 import com.example.demoapp.exception.ResourceNotFoundException;
@@ -30,7 +32,7 @@ public class UserService {
             throw new IllegalArgumentException("Password is required for new users");
         }
         User user = User.builder()
-                .name(request.getName())
+                .fullName(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .build();
@@ -60,7 +62,7 @@ public class UserService {
             throw new DuplicateResourceException("Email already registered: " + request.getEmail());
         }
 
-        user.setName(request.getName());
+        user.setFullName(request.getName());
         user.setEmail(request.getEmail());
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -78,10 +80,23 @@ public class UserService {
     }
 
     private UserResponse mapToResponse(User user) {
+        Location loc = user.getLocation();
+        LocationDto locationDto = loc == null ? null : LocationDto.builder()
+                .streetAddress(loc.getStreetAddress())
+                .latitude(loc.getLatitude())
+                .longitude(loc.getLongitude())
+                .build();
         return UserResponse.builder()
                 .id(user.getId())
-                .name(user.getName())
+                .role(user.getRole())
+                .fullName(user.getFullName())
                 .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .dateOfBirth(user.getDateOfBirth())
+                .location(locationDto)
+                .accountType(user.getAccountType())
+                .serviceCategories(UserResponse.fromCategoryList(user.getServiceCategories()))
+                .customServiceName(user.getCustomServiceName())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

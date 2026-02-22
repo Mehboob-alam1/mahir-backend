@@ -2,6 +2,8 @@
 
 REST API backend with Spring Boot 3, Java 17, Maven and MySQL. Layered architecture: Controller, Service, Repository, Entity.
 
+**Deploy for free:** see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for hosting on **Railway** (or Render / Fly.io) with PostgreSQL.
+
 ## Requirements
 
 - **Java 17**
@@ -71,27 +73,26 @@ The application will be available at **http://localhost:8080**.
 
 ## Authentication (email + password, no OTP)
 
-Auth uses JWT: sign up or sign in to get an `accessToken` and optional `refreshToken`. Send the access token in the `Authorization` header for protected endpoints: `Authorization: Bearer <accessToken>`.
+Two roles: **USER** (Find Mahir – customer) and **MAHIR** (Become Mahir – professional). Sign up with role, full name, email, password, phone, DOB, location, and account type (FREEMIUM/PREMIUM). MAHIR also sends service categories (from `GET /api/categories`) and/or a custom service name. Login is the same for both. Forgot password sends a reset link by email (or logs the link if SMTP is not configured).
+
+**Full auth API details:** see [docs/AUTH.md](docs/AUTH.md).
 
 | Method | Endpoint              | Auth | Description                |
 |--------|------------------------|------|----------------------------|
-| POST   | `/auth/signup`         | No   | Register (email, password, name) |
+| POST   | `/auth/signup`         | No   | Register (USER or MAHIR; see AUTH.md for body) |
 | POST   | `/auth/signin`         | No   | Login (email, password)    |
+| POST   | `/auth/forgot-password`| No   | Request password reset email |
+| POST   | `/auth/reset-password` | No   | Set new password with token |
 | POST   | `/auth/refresh`        | No   | Refresh access token       |
-| POST   | `/auth/logout`         | No   | Logout (client discards tokens) |
 | GET    | `/auth/check-session`  | Bearer | Check if token is valid    |
-
-**Sign up** — `POST /auth/signup`:
-```json
-{ "name": "John Doe", "email": "john@example.com", "password": "secret123" }
-```
+| GET    | `/api/categories`      | No   | List service categories (for MAHIR signup) |
 
 **Sign in** — `POST /auth/signin`:
 ```json
-{ "email": "john@example.com", "password": "secret123" }
+{ "email": "ali@example.com", "password": "secret123" }
 ```
 
-Response includes `accessToken`, `refreshToken`, `expiresIn` (seconds), and `user` (id, name, email, createdAt).
+Response includes `accessToken`, `refreshToken`, `expiresIn`, and `user` (id, role, fullName, email, phoneNumber, dateOfBirth, location, accountType, etc.).
 
 ## Available API endpoints
 

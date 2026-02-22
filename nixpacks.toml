@@ -1,0 +1,9 @@
+# Railway uses Nixpacks; ensure we build the JAR and set profile for run
+[phases.setup]
+nixPkgs = ["jdk17"]
+
+[phases.install]
+cmds = ["./mvnw dependency:go-offline -B", "./mvnw package -DskipTests -B"]
+
+[start]
+cmd = "java -Dspring.profiles.active=railway -jar target/demoapp-1.0.0-SNAPSHOT.jar"

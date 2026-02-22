@@ -1,158 +1,181 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "REST API for demoapp backend: Auth (email/password, JWT) and User CRUD.\n\n**Setup:**\n1. Run the app: `./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`\n2. Call **Auth > Sign Up** or **Auth > Sign In**\n3. Copy `accessToken` from the response and set the collection variable `accessToken` (or use the \"Set token from response\" script)\n4. Protected requests will use `Authorization: Bearer {{accessToken}}`",
+    "description": "Auth (email/password, roles USER/MAHIR), forgot/reset password, categories, User CRUD.\n\n**Setup:**\n1. Run: `./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`\n2. Call **Auth > Sign Up (Find Mahir)** or **Sign Up (Become Mahir)** or **Sign In**\n3. Tokens are saved to collection variables automatically\n4. Protected requests use `Authorization: Bearer {{accessToken}}`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080"
-    },
-    {
-      "key": "accessToken",
-      "value": ""
-    },
-    {
-      "key": "refreshToken",
-      "value": ""
-    },
-    {
-      "key": "userId",
-      "value": ""
-    }
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "resetToken", "value": "" }
   ],
   "item": [
     {
       "name": "Auth",
       "item": [
         {
-          "name": "Sign Up",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    var json = pm.response.json();",
-                  "    if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
-                  "    if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
-                  "    if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
+          "name": "Sign Up (Find Mahir - USER)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                "  if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                "  if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
+                "}"
+              ],
+              "type": "text/javascript"
             }
-          ],
+          }],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"secret123\"\n}"
+              "raw": "{\n  \"role\": \"USER\",\n  \"fullName\": \"Ali Khan\",\n  \"email\": \"ali@example.com\",\n  \"password\": \"secret123\",\n  \"phoneNumber\": \"+923001234567\",\n  \"dateOfBirth\": \"1995-01-20\",\n  \"location\": {\n    \"streetAddress\": \"Block 5, Clifton, Karachi\",\n    \"latitude\": 24.8,\n    \"longitude\": 67.05\n  },\n  \"accountType\": \"FREEMIUM\"\n}"
             },
             "url": "{{baseUrl}}/auth/signup",
-            "description": "Register a new user. Saves accessToken and refreshToken to collection variables for use in other requests."
+            "description": "Register as Find Mahir (customer). Role USER. Saves tokens to collection variables."
+          }
+        },
+        {
+          "name": "Sign Up (Become Mahir - MAHIR)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                "  if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                "  if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"MAHIR\",\n  \"fullName\": \"Sara Ahmed\",\n  \"email\": \"sara@example.com\",\n  \"password\": \"secret123\",\n  \"phoneNumber\": \"+923009876543\",\n  \"dateOfBirth\": \"1988-11-10\",\n  \"location\": {\n    \"streetAddress\": \"Gulberg III, Lahore\",\n    \"latitude\": 31.52,\n    \"longitude\": 74.36\n  },\n  \"accountType\": \"PREMIUM\",\n  \"serviceCategoryIds\": [1, 2],\n  \"customServiceName\": \"Custom Home Repairs\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signup",
+            "description": "Register as Become Mahir (professional). Role MAHIR. Use category IDs from GET /api/categories or set customServiceName."
           }
         },
         {
           "name": "Sign In",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    var json = pm.response.json();",
-                  "    if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
-                  "    if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
-                  "    if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                "  if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                "  if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
+                "}"
+              ],
+              "type": "text/javascript"
             }
-          ],
+          }],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"secret123\"\n}"
+              "raw": "{\n  \"email\": \"ali@example.com\",\n  \"password\": \"secret123\"\n}"
             },
             "url": "{{baseUrl}}/auth/signin",
-            "description": "Login with email and password. Saves tokens to collection variables."
+            "description": "Login (same for USER and MAHIR). Saves tokens to collection variables."
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ali@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/forgot-password",
+            "description": "Request password reset. If email exists, a reset link is sent (or logged if SMTP not configured)."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"newSecret456\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/reset-password",
+            "description": "Set new password using token from forgot-password email/link. Set resetToken variable from the link."
           }
         },
         {
           "name": "Refresh Token",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    var json = pm.response.json();",
-                  "    if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
-                  "    if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                "  if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                "}"
+              ],
+              "type": "text/javascript"
             }
-          ],
+          }],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/refresh",
-            "description": "Get new access and refresh tokens. Uses the refreshToken variable (set after sign in/up)."
+            "description": "Get new access and refresh tokens."
           }
         },
         {
           "name": "Check Session",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
-            "header": [],
             "url": "{{baseUrl}}/auth/check-session",
-            "description": "Verify if the current access token is valid. Returns user info if valid."
+            "description": "Validate token and return current user."
           }
         },
         {
           "name": "Logout",
           "request": {
             "method": "POST",
-            "header": [],
             "url": "{{baseUrl}}/auth/logout",
-            "description": "Logout. Client should discard stored tokens. No auth required."
+            "description": "Logout. Client discards tokens."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/categories",
+            "description": "List service categories for MAHIR signup (e.g. Plumbing, Electrical). No auth required."
           }
         }
       ]
@@ -163,46 +186,22 @@
         {
           "name": "Create User",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\"\n}"
             },
             "url": "{{baseUrl}}/api/users",
-            "description": "Create a new user. Requires Bearer token. Password is required (6–100 chars)."
+            "description": "Create user (legacy; for full signup use Auth > Sign Up). Requires Bearer token."
           }
         },
         {
           "name": "Get All Users",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
-            "header": [],
             "url": "{{baseUrl}}/api/users",
             "description": "List all users. Requires Bearer token."
           }
@@ -210,65 +209,31 @@
         {
           "name": "Get User by ID",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
-            "header": [],
             "url": "{{baseUrl}}/api/users/{{userId}}",
-            "description": "Get a single user by ID. Uses collection variable `userId` (set after sign in/up) or replace with a number."
+            "description": "Get user by ID. Uses collection variable userId."
           }
         },
         {
           "name": "Update User",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\"\n}"
             },
             "url": "{{baseUrl}}/api/users/{{userId}}",
-            "description": "Update user. Password is optional (include only if changing)."
+            "description": "Update user. Password optional."
           }
         },
         {
           "name": "Delete User",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "DELETE",
-            "header": [],
             "url": "{{baseUrl}}/api/users/{{userId}}",
             "description": "Delete user by ID."
           }

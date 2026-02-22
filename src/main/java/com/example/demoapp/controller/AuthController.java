@@ -1,8 +1,6 @@
 package com.example.demoapp.controller;
 
-import com.example.demoapp.dto.AuthResponse;
-import com.example.demoapp.dto.SignInRequest;
-import com.example.demoapp.dto.SignUpRequest;
+import com.example.demoapp.dto.*;
 import com.example.demoapp.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +47,24 @@ public class AuthController {
                 : null;
         AuthResponse response = authService.checkSession(token);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<AuthResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(AuthResponse.builder()
+                .success(true)
+                .message("If an account exists with this email, a reset link has been sent.")
+                .build());
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<AuthResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(AuthResponse.builder()
+                .success(true)
+                .message("Password has been reset. You can now sign in.")
+                .build());
     }
 
     @lombok.Getter
