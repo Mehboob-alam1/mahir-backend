@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Auth (email/password, roles USER/MAHIR), forgot/reset password, categories, User CRUD.\n\n**Setup:**\n1. Run: `./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`\n2. Call **Auth > Sign Up (Find Mahir)** or **Sign Up (Become Mahir)** or **Sign In**\n3. Tokens are saved to collection variables automatically\n4. Protected requests use `Authorization: Bearer {{accessToken}}`",
+    "description": "Auth (email/password, roles USER/MAHIR), forgot/reset password, categories, User CRUD.\n\n**baseUrl:** Default is Railway production. For local: set baseUrl to `http://localhost:8080`.\n\n**Setup:**\n1. Call **Auth > Sign Up (Find Mahir)** or **Sign Up (Become Mahir)** or **Sign In**\n2. Tokens are saved to collection variables automatically\n3. Protected requests use `Authorization: Bearer {{accessToken}}`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "baseUrl", "value": "https://mahir-backend-production.up.railway.app" },
     { "key": "accessToken", "value": "" },
     { "key": "refreshToken", "value": "" },
     { "key": "userId", "value": "" },
