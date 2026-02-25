@@ -9,6 +9,7 @@ import com.example.demoapp.repository.CategoryRepository;
 import com.example.demoapp.repository.PasswordResetTokenRepository;
 import com.example.demoapp.repository.UserRepository;
 import com.example.demoapp.security.JwtService;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -139,18 +140,28 @@ public class AuthService {
         if (accessToken == null || accessToken.isBlank()) {
             throw new UnauthorizedException("Session expired or invalid");
         }
-        if (!jwtService.isAccessToken(accessToken)) {
+        try {
+            if (!jwtService.isAccessToken(accessToken)) {
+                throw new UnauthorizedException("Session expired or invalid");
+            }
+            var claims = jwtService.parseToken(accessToken);
+            String email = claims.getSubject();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new UnauthorizedException("User not found"));
+            UserResponse userResponse = mapToUserResponse(user);
+            return AuthResponse.builder()
+                    .success(true)
+                    .user(userResponse)
+                    .build();
+        } catch (UnauthorizedException e) {
+            throw e;
+        } catch (JwtException e) {
+            log.debug("Check session failed: invalid or expired token");
+            throw new UnauthorizedException("Session expired or invalid");
+        } catch (Exception e) {
+            log.warn("Check session failed", e);
             throw new UnauthorizedException("Session expired or invalid");
         }
-        var claims = jwtService.parseToken(accessToken);
-        String email = claims.getSubject();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UnauthorizedException("User not found"));
-        UserResponse userResponse = mapToUserResponse(user);
-        return AuthResponse.builder()
-                .success(true)
-                .user(userResponse)
-                .build();
     }
 
     @Transactional
