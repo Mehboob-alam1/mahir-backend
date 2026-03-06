@@ -46,6 +46,16 @@ This guide walks you through hosting this Spring Boot API on [Railway](https://r
    - **Name:** `APP_RESET_PASSWORD_BASE_URL`
    - **Value:** `https://your-app-name.up.railway.app` (you’ll get this after generating a domain).
 
+8. (Optional) **To send forgot-password emails**, add SMTP variables. If you skip this, reset links are only written to server logs.
+   - **Name:** `SPRING_MAIL_HOST` → **Value:** e.g. `smtp.gmail.com` (Gmail) or `smtp.sendgrid.net` (SendGrid).
+   - **Name:** `SPRING_MAIL_PORT` → **Value:** `587`
+   - **Name:** `SPRING_MAIL_USERNAME` → **Value:** your SMTP username (e.g. your Gmail address, or SendGrid API user).
+   - **Name:** `SPRING_MAIL_PASSWORD` → **Value:** your SMTP password (for Gmail use an [App Password](https://support.google.com/accounts/answer/185833); for SendGrid use an API key).
+   - **Name:** `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` → **Value:** `true`
+   - **Name:** `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` → **Value:** `true`
+
+   Spring Boot maps these to `spring.mail.*` automatically. After adding them, redeploy so forgot-password emails are sent to users.
+
 Save the variables.
 
 ---
@@ -126,6 +136,7 @@ Update your **Postman** collection variable `baseUrl` to this URL.
 | App crashes at startup | Check **View logs**. Often missing `DATABASE_URL` or Postgres not linked. Set `DATABASE_URL` (reference) and `SPRING_PROFILES_ACTIVE=railway`. |
 | 503 / no response | Wait 1–2 minutes after deploy. Try `/health` or `/`. Free tier may sleep; first request can be slow. |
 | DB connection error | Confirm `DATABASE_URL` is referenced from the Postgres service. |
+| Forgot password: no email received | The API always returns "If an account exists, a reset link has been sent." but **email is only sent if SMTP is configured**. On Railway, add **Variables**: `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` (and optionally `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true`). Until then, the reset link is only written to **server logs** (View logs on the deployment). |
 
 ---
 
