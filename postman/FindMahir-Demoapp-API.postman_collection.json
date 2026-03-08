@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth, categories, Mahirs search, Users (incl. me), Bookings, Reviews.\n\n**baseUrl:** Railway default. Local: set to http://localhost:8080.\n\n**Setup:** Sign In or Sign Up, then use Bearer {{accessToken}} for protected endpoints. Variables: userId, mahirId, bookingId.",
+    "description": "Find Mahir API: Auth, Jobs, Bids, Bookings, Chat, Users, Mahirs, Reviews, Notifications.\n\n**baseUrl:** Railway default. Local: http://localhost:8080.\n\n**Setup:** Sign In or Sign Up; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -10,7 +10,10 @@
     { "key": "refreshToken", "value": "" },
     { "key": "userId", "value": "" },
     { "key": "mahirId", "value": "" },
+    { "key": "jobId", "value": "" },
+    { "key": "bidId", "value": "" },
     { "key": "bookingId", "value": "" },
+    { "key": "threadId", "value": "" },
     { "key": "resetToken", "value": "" }
   ],
   "item": [
@@ -170,6 +173,167 @@
       ]
     },
     {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "Create Job",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  if (json.id) pm.collectionVariables.set('jobId', json.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Need maths tutor, 2 hours\",\n  \"description\": \"Looking for a tutor for grade 10 maths.\",\n  \"categoryId\": 1,\n  \"location\": {\n    \"streetAddress\": \"Block 5, Karachi\",\n    \"latitude\": 24.8,\n    \"longitude\": 67.05\n  },\n  \"scheduledAt\": \"2025-03-15T14:00:00\",\n  \"budgetMin\": 800,\n  \"budgetMax\": 1000,\n  \"durationHours\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/jobs",
+            "description": "USER posts a job (open for bids). Saves jobId. categoryId from GET /api/categories."
+          }
+        },
+        {
+          "name": "List My Jobs",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs?filter=my&page=0&size=20",
+            "description": "USER: list my jobs. Add &status=OPEN or status=ASSIGNED etc."
+          }
+        },
+        {
+          "name": "List Open Jobs",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs?page=0&size=20",
+            "description": "MAHIR: list open jobs. Add &categoryId=1 to filter by category."
+          }
+        },
+        {
+          "name": "Get Job by ID",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}",
+            "description": "Job detail (poster, category, location, budget, status)."
+          }
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated title\",\n  \"description\": \"Updated description\",\n  \"scheduledAt\": \"2025-03-16T10:00:00\",\n  \"budgetMin\": 900,\n  \"budgetMax\": 1200,\n  \"durationHours\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}",
+            "description": "USER can update only if status=OPEN and no accepted bid."
+          }
+        },
+        {
+          "name": "Cancel Job",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/cancel",
+            "description": "USER cancels job (only if OPEN)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bids",
+      "item": [
+        {
+          "name": "Create Bid",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  if (json.id) pm.collectionVariables.set('bidId', json.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I can do this at 900 Rs/hr. Available weekends.\",\n  \"proposedPrice\": 1800,\n  \"proposedAt\": \"2025-03-15T14:00:00\",\n  \"estimatedDurationHours\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/bids",
+            "description": "MAHIR bids on a job. One bid per Mahir per job. Saves bidId."
+          }
+        },
+        {
+          "name": "List Bids for Job",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/bids?page=0&size=20",
+            "description": "USER: all bids for this job. MAHIR: only their bid."
+          }
+        },
+        {
+          "name": "List My Bids",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bids?page=0&size=20",
+            "description": "MAHIR: list my bids. Add &status=PENDING or ACCEPTED etc."
+          }
+        },
+        {
+          "name": "Accept Bid",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.id) pm.collectionVariables.set('bookingId', json.id);",
+                "  if (json.chatThreadId) pm.collectionVariables.set('threadId', json.chatThreadId);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/bids/{{bidId}}/accept",
+            "description": "USER accepts one bid. Creates booking + chat thread. Rejects other bids. Saves bookingId, threadId."
+          }
+        },
+        {
+          "name": "Reject Bid",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/bids/{{bidId}}/reject",
+            "description": "USER rejects a bid."
+          }
+        }
+      ]
+    },
+    {
       "name": "Categories",
       "item": [
         {
@@ -223,7 +387,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Updated Full Name\",\n  \"phoneNumber\": \"+923001234567\",\n  \"dateOfBirth\": \"1995-01-20\",\n  \"location\": {\n    \"streetAddress\": \"New Address\",\n    \"latitude\": 24.8,\n    \"longitude\": 67.05\n  },\n  \"accountType\": \"PREMIUM\",\n  \"serviceCategoryIds\": [1, 2],\n  \"customServiceName\": \"My Service\",\n  \"password\": \"\"\n}"
+              "raw": "{\n  \"fullName\": \"Updated Full Name\",\n  \"phoneNumber\": \"+923001234567\",\n  \"dateOfBirth\": \"1995-01-20\",\n  \"location\": {\n    \"streetAddress\": \"New Address\",\n    \"latitude\": 24.8,\n    \"longitude\": 67.05\n  },\n  \"accountType\": \"PREMIUM\",\n  \"serviceCategoryIds\": [1, 2],\n  \"customServiceName\": \"My Service\",\n  \"avatarUrl\": \"https://example.com/avatar.jpg\",\n  \"bio\": \"Short bio\",\n  \"password\": \"\"\n}"
             },
             "url": "{{baseUrl}}/api/users/me",
             "description": "Update current user profile. All fields optional. MAHIR can set serviceCategoryIds and customServiceName."
@@ -259,6 +423,15 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/users/{{userId}}",
             "description": "Get user by ID. Uses collection variable userId."
+          }
+        },
+        {
+          "name": "Get Public Profile",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/{{userId}}/public",
+            "description": "Public profile (no email/phone): fullName, avatarUrl, bio, rating, reviewCount, services. For viewing Mahir/customer before accepting bid."
           }
         },
         {
@@ -321,7 +494,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/bookings?page=0&size=20",
-            "description": "List current user's bookings (as customer or Mahir). Paginated."
+            "description": "List my bookings. Add &status=ACCEPTED or IN_PROGRESS or COMPLETED or CANCELLED to filter."
           }
         },
         {
@@ -361,12 +534,120 @@
           }
         },
         {
+          "name": "Update Booking Status (In Progress)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=IN_PROGRESS",
+            "description": "Mahir marks job as in progress."
+          }
+        },
+        {
           "name": "Update Booking Status (Cancel)",
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "PATCH",
             "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=CANCELLED",
             "description": "Customer or Mahir cancels the booking."
+          }
+        },
+        {
+          "name": "Cancel Booking (with reason)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel?reason=Schedule+conflict",
+            "description": "Cancel booking with optional reason. Notifies the other party."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Get or Create Chat Thread for Booking",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.threadId) pm.collectionVariables.set('threadId', json.threadId);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/chat",
+            "description": "Get or create chat thread for this booking. Returns threadId. Saves to collection."
+          }
+        },
+        {
+          "name": "List My Chat Threads",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/chats",
+            "description": "List my chat threads (other party, last message, unread count)."
+          }
+        },
+        {
+          "name": "Get Chat Messages",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/chats/{{threadId}}/messages?page=0&size=50",
+            "description": "Paginated message history for a thread."
+          }
+        },
+        {
+          "name": "Send Chat Message",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello, when can you start?\"\n}"
+            },
+            "url": "{{baseUrl}}/api/chats/{{threadId}}/messages",
+            "description": "Send a message in the booking chat. Other party gets notification."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List My Notifications",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications?page=0&size=20",
+            "description": "Paginated list of my notifications (bid received, accepted, rejected, booking cancelled, chat message)."
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications/unread-count",
+            "description": "Returns { \"count\": number }."
+          }
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/notifications/1/read",
+            "description": "Mark a notification as read. Replace 1 with notification id from list."
           }
         }
       ]
