@@ -33,6 +33,12 @@ public class UpdateProfileRequest {
     @Size(max = 200)
     private String customServiceName;
 
+    @Size(max = 500)
+    private String avatarUrl;
+
+    @Size(max = 1000)
+    private String bio;
+
     @Size(min = 6, max = 100, message = "Password must be 6-100 characters")
     private String password;
 }

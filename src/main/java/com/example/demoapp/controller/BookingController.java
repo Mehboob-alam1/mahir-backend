@@ -38,11 +38,12 @@ public class BookingController {
     @GetMapping
     public ResponseEntity<Page<BookingResponse>> getMyBookings(
             @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(required = false) BookingStatus status,
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         if (principal == null) {
             throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
         }
-        Page<BookingResponse> page = bookingService.getMyBookings(principal.getUserId(), pageable);
+        Page<BookingResponse> page = bookingService.getMyBookings(principal.getUserId(), status, pageable);
         return ResponseEntity.ok(page);
     }
 
@@ -67,5 +68,16 @@ public class BookingController {
         }
         BookingResponse response = bookingService.updateStatus(id, principal.getUserId(), status);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<BookingResponse> cancel(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        if (principal == null) {
+            throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        }
+        return ResponseEntity.ok(bookingService.cancel(id, principal.getUserId(), reason));
     }
 }

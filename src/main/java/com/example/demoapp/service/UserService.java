@@ -1,8 +1,10 @@
 package com.example.demoapp.service;
 
 import com.example.demoapp.dto.LocationDto;
+import com.example.demoapp.dto.PublicProfileResponse;
 import com.example.demoapp.dto.UpdateProfileRequest;
 import com.example.demoapp.dto.UserRequest;
+import com.example.demoapp.dto.CategoryResponse;
 import com.example.demoapp.dto.UserResponse;
 import com.example.demoapp.entity.Location;
 import com.example.demoapp.entity.User;
@@ -10,6 +12,7 @@ import com.example.demoapp.exception.DuplicateResourceException;
 import com.example.demoapp.exception.ResourceNotFoundException;
 import com.example.demoapp.exception.UnauthorizedException;
 import com.example.demoapp.repository.CategoryRepository;
+import com.example.demoapp.repository.ReviewRepository;
 import com.example.demoapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,6 +31,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final ReviewRepository reviewRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -89,6 +93,12 @@ public class UserService {
                 user.setCustomServiceName(request.getCustomServiceName());
             }
         }
+        if (request.getAvatarUrl() != null) {
+            user.setAvatarUrl(request.getAvatarUrl());
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
         user = userRepository.save(user);
         return mapToResponse(user);
     }
@@ -108,6 +118,36 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
         return mapToResponse(user);
+    }
+
+    public PublicProfileResponse getPublicProfile(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        Location loc = user.getLocation();
+        LocationDto locDto = loc == null ? null : LocationDto.builder()
+                .streetAddress(loc.getStreetAddress())
+                .latitude(loc.getLatitude())
+                .longitude(loc.getLongitude())
+                .build();
+        java.util.List<CategoryResponse> categories = user.getServiceCategories() == null ? List.of() : user.getServiceCategories().stream()
+                .map(c -> CategoryResponse.builder().id(c.getId()).name(c.getName()).description(c.getDescription()).build())
+                .collect(Collectors.toList());
+        Double avgRating = user.getRole() == com.example.demoapp.entity.Role.MAHIR ? reviewRepository.getAverageRatingByMahirId(user.getId()) : null;
+        long reviewCount = user.getRole() == com.example.demoapp.entity.Role.MAHIR ? reviewRepository.countByMahir(user) : 0L;
+        return PublicProfileResponse.builder()
+                .id(user.getId())
+                .role(user.getRole())
+                .fullName(user.getFullName())
+                .avatarUrl(user.getAvatarUrl())
+                .bio(user.getBio())
+                .location(locDto)
+                .accountType(user.getAccountType())
+                .serviceCategories(categories)
+                .customServiceName(user.getCustomServiceName())
+                .averageRating(avgRating != null ? Math.round(avgRating * 10.0) / 10.0 : null)
+                .reviewCount(reviewCount)
+                .createdAt(user.getCreatedAt())
+                .build();
     }
 
     @Transactional
@@ -158,6 +198,8 @@ public class UserService {
                 .accountType(user.getAccountType())
                 .serviceCategories(UserResponse.fromCategoryList(user.getServiceCategories()))
                 .customServiceName(user.getCustomServiceName())
+                .avatarUrl(user.getAvatarUrl())
+                .bio(user.getBio())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

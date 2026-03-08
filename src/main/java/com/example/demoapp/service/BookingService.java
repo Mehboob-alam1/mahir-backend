@@ -2,19 +2,20 @@ package com.example.demoapp.service;
 
 import com.example.demoapp.dto.BookingRequest;
 import com.example.demoapp.dto.BookingResponse;
-import com.example.demoapp.entity.Booking;
-import com.example.demoapp.entity.BookingStatus;
-import com.example.demoapp.entity.Role;
-import com.example.demoapp.entity.User;
+import com.example.demoapp.entity.*;
 import com.example.demoapp.exception.ResourceNotFoundException;
 import com.example.demoapp.exception.UnauthorizedException;
 import com.example.demoapp.repository.BookingRepository;
+import com.example.demoapp.repository.ChatThreadRepository;
 import com.example.demoapp.repository.UserRepository;
+import com.example.demoapp.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +23,27 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final ChatThreadRepository chatThreadRepository;
+    private final NotificationService notificationService;
+
+    /** Called when user accepts a bid: creates booking and chat thread. */
+    @Transactional
+    public BookingResponse createFromAcceptedBid(Job job, Bid bid) {
+        Booking booking = Booking.builder()
+                .customer(job.getPostedBy())
+                .mahir(bid.getMahir())
+                .job(job)
+                .bid(bid)
+                .agreedPrice(bid.getProposedPrice())
+                .status(BookingStatus.ACCEPTED)
+                .scheduledAt(bid.getProposedAt() != null ? bid.getProposedAt() : job.getScheduledAt())
+                .message(bid.getMessage())
+                .build();
+        booking = bookingRepository.save(booking);
+        ChatThread thread = ChatThread.builder().booking(booking).build();
+        thread = chatThreadRepository.save(thread);
+        return toResponse(booking);
+    }
 
     @Transactional
     public BookingResponse create(Long customerId, BookingRequest request) {
@@ -49,13 +71,40 @@ public class BookingService {
         return toResponse(booking);
     }
 
-    public Page<BookingResponse> getMyBookings(Long userId, Pageable pageable) {
+    public Page<BookingResponse> getMyBookings(Long userId, BookingStatus statusFilter, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-        Page<Booking> page = user.getRole() == Role.MAHIR
-                ? bookingRepository.findByMahirOrderByCreatedAtDesc(user, pageable)
-                : bookingRepository.findByCustomerOrderByCreatedAtDesc(user, pageable);
+        Page<Booking> page;
+        if (statusFilter != null) {
+            page = user.getRole() == Role.MAHIR
+                    ? bookingRepository.findByMahirAndStatusOrderByCreatedAtDesc(user, statusFilter, pageable)
+                    : bookingRepository.findByCustomerAndStatusOrderByCreatedAtDesc(user, statusFilter, pageable);
+        } else {
+            page = user.getRole() == Role.MAHIR
+                    ? bookingRepository.findByMahirOrderByCreatedAtDesc(user, pageable)
+                    : bookingRepository.findByCustomerOrderByCreatedAtDesc(user, pageable);
+        }
         return page.map(this::toResponse);
+    }
+
+    @Transactional
+    public BookingResponse cancel(Long bookingId, Long userId, String reason) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        ensureCanAccess(booking, userId);
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new UnauthorizedException("Booking is already cancelled");
+        }
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new UnauthorizedException("Cannot cancel a completed booking");
+        }
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancelReason(reason);
+        booking = bookingRepository.save(booking);
+        User other = booking.getCustomer().getId().equals(userId) ? booking.getMahir() : booking.getCustomer();
+        notificationService.create(other.getId(), "BOOKING_CANCELLED", "Booking cancelled",
+                "A booking was cancelled." + (reason != null && !reason.isBlank() ? " Reason: " + reason : ""), bookingId);
+        return toResponse(booking);
     }
 
     public BookingResponse getById(Long bookingId, Long userId) {
@@ -75,8 +124,8 @@ public class BookingService {
             if (!booking.getMahir().getId().equals(userId)) {
                 throw new UnauthorizedException("Only the assigned Mahir can update status");
             }
-            if (status != BookingStatus.ACCEPTED && status != BookingStatus.REJECTED && status != BookingStatus.COMPLETED) {
-                throw new UnauthorizedException("Mahir can set status to ACCEPTED, REJECTED, or COMPLETED");
+            if (status != BookingStatus.IN_PROGRESS && status != BookingStatus.COMPLETED) {
+                throw new UnauthorizedException("Mahir can set status to IN_PROGRESS or COMPLETED");
             }
         } else {
             if (!booking.getCustomer().getId().equals(userId)) {
@@ -98,17 +147,24 @@ public class BookingService {
     }
 
     private BookingResponse toResponse(Booking b) {
+        Long threadId = chatThreadRepository.findByBookingId(b.getId()).map(ChatThread::getId).orElse(null);
         return BookingResponse.builder()
                 .id(b.getId())
+                .jobId(b.getJob() != null ? b.getJob().getId() : null)
+                .bidId(b.getBid() != null ? b.getBid().getId() : null)
                 .customerId(b.getCustomer().getId())
                 .customerName(b.getCustomer().getFullName())
                 .customerEmail(b.getCustomer().getEmail())
                 .mahirId(b.getMahir().getId())
                 .mahirName(b.getMahir().getFullName())
                 .mahirEmail(b.getMahir().getEmail())
+                .jobTitle(b.getJob() != null ? b.getJob().getTitle() : null)
+                .agreedPrice(b.getAgreedPrice())
                 .status(b.getStatus())
                 .scheduledAt(b.getScheduledAt())
                 .message(b.getMessage())
+                .cancelReason(b.getCancelReason())
+                .chatThreadId(threadId)
                 .createdAt(b.getCreatedAt())
                 .updatedAt(b.getUpdatedAt())
                 .build();

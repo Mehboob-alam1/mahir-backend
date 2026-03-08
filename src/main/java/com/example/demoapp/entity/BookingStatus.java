@@ -1,9 +1,9 @@
 package com.example.demoapp.entity;
 
 public enum BookingStatus {
-    PENDING,    // USER requested, waiting for MAHIR
-    ACCEPTED,   // MAHIR accepted
-    REJECTED,   // MAHIR rejected
-    COMPLETED,  // Service done
-    CANCELLED   // Cancelled by either party
+    PENDING,      // Legacy / not used when created from bid
+    ACCEPTED,     // Bid accepted, booking confirmed
+    IN_PROGRESS,  // Mahir started the job
+    COMPLETED,    // Done
+    CANCELLED     // Cancelled by either party
 }

@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
     account_type VARCHAR(20),
     role VARCHAR(20) NOT NULL,
     custom_service_name VARCHAR(200),
+    avatar_url VARCHAR(500),
+    bio VARCHAR(1000),
     created_at TIMESTAMP NOT NULL
 );
 
@@ -36,15 +38,77 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     expires_at TIMESTAMP NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS jobs (
+    id BIGSERIAL PRIMARY KEY,
+    posted_by_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category_id BIGINT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+    title VARCHAR(200) NOT NULL,
+    description VARCHAR(2000),
+    job_street_address VARCHAR(500),
+    job_latitude DOUBLE PRECISION,
+    job_longitude DOUBLE PRECISION,
+    scheduled_at TIMESTAMP,
+    budget_min DECIMAL(12,2),
+    budget_max DECIMAL(12,2),
+    duration_hours INTEGER,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bids (
+    id BIGSERIAL PRIMARY KEY,
+    job_id BIGINT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    mahir_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message VARCHAR(2000),
+    proposed_price DECIMAL(12,2) NOT NULL,
+    proposed_at TIMESTAMP,
+    estimated_duration_hours INTEGER,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    UNIQUE(job_id, mahir_id)
+);
+
 CREATE TABLE IF NOT EXISTS bookings (
     id BIGSERIAL PRIMARY KEY,
     customer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     mahir_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    job_id BIGINT REFERENCES jobs(id) ON DELETE SET NULL,
+    bid_id BIGINT REFERENCES bids(id) ON DELETE SET NULL,
+    agreed_price DECIMAL(12,2),
     status VARCHAR(20) NOT NULL,
     scheduled_at TIMESTAMP,
     message VARCHAR(1000),
+    cancel_reason VARCHAR(500),
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat_threads (
+    id BIGSERIAL PRIMARY KEY,
+    booking_id BIGINT NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL,
+    UNIQUE(booking_id)
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGSERIAL PRIMARY KEY,
+    thread_id BIGINT NOT NULL REFERENCES chat_threads(id) ON DELETE CASCADE,
+    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content VARCHAR(4000) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    read_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    body VARCHAR(1000),
+    related_id BIGINT,
+    read_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS reviews (

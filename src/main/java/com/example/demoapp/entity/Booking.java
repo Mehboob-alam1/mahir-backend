@@ -27,16 +27,30 @@ public class Booking {
     @JoinColumn(name = "mahir_id", nullable = false)
     private User mahir;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "job_id")
+    private Job job;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bid_id")
+    private Bid bid;
+
+    @Column(name = "agreed_price", precision = 12, scale = 2)
+    private java.math.BigDecimal agreedPrice;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private BookingStatus status = BookingStatus.PENDING;
+    private BookingStatus status = BookingStatus.ACCEPTED;
 
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
 
     @Column(length = 1000)
     private String message;
+
+    @Column(name = "cancel_reason", length = 500)
+    private String cancelReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

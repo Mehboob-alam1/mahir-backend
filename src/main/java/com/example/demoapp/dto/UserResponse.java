@@ -26,6 +26,8 @@ public class UserResponse {
     private AccountType accountType;
     private List<CategoryResponse> serviceCategories;
     private String customServiceName;
+    private String avatarUrl;
+    private String bio;
     private LocalDateTime createdAt;
 
     @Getter

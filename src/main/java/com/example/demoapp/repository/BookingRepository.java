@@ -15,5 +15,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Page<Booking> findByMahirOrderByCreatedAtDesc(User mahir, Pageable pageable);
 
+    Page<Booking> findByCustomerAndStatusOrderByCreatedAtDesc(User customer, BookingStatus status, Pageable pageable);
+
+    Page<Booking> findByMahirAndStatusOrderByCreatedAtDesc(User mahir, BookingStatus status, Pageable pageable);
+
     Page<Booking> findByCustomerOrMahirOrderByCreatedAtDesc(User customer, User mahir, Pageable pageable);
 }

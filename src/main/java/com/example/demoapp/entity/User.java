@@ -60,6 +60,12 @@ public class User {
     @Column(name = "custom_service_name", length = 200)
     private String customServiceName;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
+    @Column(length = 1000)
+    private String bio;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
