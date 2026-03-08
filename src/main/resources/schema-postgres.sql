@@ -35,3 +35,25 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires_at TIMESTAMP NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS bookings (
+    id BIGSERIAL PRIMARY KEY,
+    customer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mahir_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL,
+    scheduled_at TIMESTAMP,
+    message VARCHAR(1000),
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+    id BIGSERIAL PRIMARY KEY,
+    booking_id BIGINT NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    reviewer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mahir_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL,
+    comment VARCHAR(2000),
+    created_at TIMESTAMP NOT NULL,
+    UNIQUE(booking_id)
+);

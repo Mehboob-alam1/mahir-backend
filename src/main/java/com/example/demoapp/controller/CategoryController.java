@@ -3,6 +3,7 @@ package com.example.demoapp.controller;
 import com.example.demoapp.dto.CategoryResponse;
 import com.example.demoapp.entity.Category;
 import com.example.demoapp.repository.CategoryRepository;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/categories")
+@Tag(name = "Categories", description = "Service categories for MAHIR signup")
 @RequiredArgsConstructor
 public class CategoryController {
 

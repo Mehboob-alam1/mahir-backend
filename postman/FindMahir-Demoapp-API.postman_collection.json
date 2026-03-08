@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Auth (email/password, roles USER/MAHIR), forgot/reset password, categories, User CRUD.\n\n**baseUrl:** Default is Railway production. For local: set baseUrl to `http://localhost:8080`.\n\n**Setup:**\n1. Call **Auth > Sign Up (Find Mahir)** or **Sign Up (Become Mahir)** or **Sign In**\n2. Tokens are saved to collection variables automatically\n3. Protected requests use `Authorization: Bearer {{accessToken}}`",
+    "description": "Find Mahir API: Auth, categories, Mahirs search, Users (incl. me), Bookings, Reviews.\n\n**baseUrl:** Railway default. Local: set to http://localhost:8080.\n\n**Setup:** Sign In or Sign Up, then use Bearer {{accessToken}} for protected endpoints. Variables: userId, mahirId, bookingId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -9,6 +9,8 @@
     { "key": "accessToken", "value": "" },
     { "key": "refreshToken", "value": "" },
     { "key": "userId", "value": "" },
+    { "key": "mahirId", "value": "" },
+    { "key": "bookingId", "value": "" },
     { "key": "resetToken", "value": "" }
   ],
   "item": [
@@ -175,7 +177,28 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/categories",
-            "description": "List service categories for MAHIR signup (e.g. Plumbing, Electrical). No auth required."
+            "description": "List service categories for MAHIR signup. No auth required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mahirs",
+      "item": [
+        {
+          "name": "Search Mahirs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/mahirs?page=0&size=20",
+            "description": "Search Mahirs. Add ?categoryId=1 to filter by category. Paginated; returns averageRating and reviewCount. No auth."
+          }
+        },
+        {
+          "name": "Get Mahir by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/mahirs/{{mahirId}}",
+            "description": "Get one Mahir by ID with average rating and review count. No auth required."
           }
         }
       ]
@@ -183,6 +206,29 @@
     {
       "name": "Users",
       "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/me",
+            "description": "Get current user profile. Requires Bearer token."
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated Full Name\",\n  \"phoneNumber\": \"+923001234567\",\n  \"dateOfBirth\": \"1995-01-20\",\n  \"location\": {\n    \"streetAddress\": \"New Address\",\n    \"latitude\": 24.8,\n    \"longitude\": 67.05\n  },\n  \"accountType\": \"PREMIUM\",\n  \"serviceCategoryIds\": [1, 2],\n  \"customServiceName\": \"My Service\",\n  \"password\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/me",
+            "description": "Update current user profile. All fields optional. MAHIR can set serviceCategoryIds and customServiceName."
+          }
+        },
         {
           "name": "Create User",
           "request": {
@@ -202,8 +248,8 @@
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
-            "url": "{{baseUrl}}/api/users",
-            "description": "List all users. Requires Bearer token."
+            "url": "{{baseUrl}}/api/users?page=0&size=20",
+            "description": "List all users (paginated). Requires Bearer token."
           }
         },
         {
@@ -235,7 +281,119 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "DELETE",
             "url": "{{baseUrl}}/api/users/{{userId}}",
-            "description": "Delete user by ID."
+            "description": "Delete user. Only own account allowed."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create Booking",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  if (json.id) pm.collectionVariables.set('bookingId', json.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mahirId\": {{mahirId}},\n  \"scheduledAt\": \"2025-03-01T10:00:00\",\n  \"message\": \"I need plumbing repair at my home.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/bookings",
+            "description": "Create a booking (USER only). Set mahirId from Search Mahirs. Saves bookingId to collection."
+          }
+        },
+        {
+          "name": "Get My Bookings",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bookings?page=0&size=20",
+            "description": "List current user's bookings (as customer or Mahir). Paginated."
+          }
+        },
+        {
+          "name": "Get Booking by ID",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}",
+            "description": "Get one booking. Only customer or assigned Mahir can access."
+          }
+        },
+        {
+          "name": "Update Booking Status (Accept)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=ACCEPTED",
+            "description": "Mahir: set status to ACCEPTED, REJECTED, or COMPLETED. Customer: set to CANCELLED."
+          }
+        },
+        {
+          "name": "Update Booking Status (Reject)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=REJECTED",
+            "description": "Mahir rejects the booking."
+          }
+        },
+        {
+          "name": "Update Booking Status (Completed)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=COMPLETED",
+            "description": "Mahir marks booking as completed."
+          }
+        },
+        {
+          "name": "Update Booking Status (Cancel)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=CANCELLED",
+            "description": "Customer or Mahir cancels the booking."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Create Review",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": {{bookingId}},\n  \"rating\": 5,\n  \"comment\": \"Excellent service, very professional.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/reviews",
+            "description": "Leave a review for a completed booking (USER/customer only). One review per booking."
+          }
+        },
+        {
+          "name": "Get Reviews by Mahir ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/mahirs/{{mahirId}}/reviews?page=0&size=20",
+            "description": "List reviews for a Mahir. No auth required. Paginated."
           }
         }
       ]

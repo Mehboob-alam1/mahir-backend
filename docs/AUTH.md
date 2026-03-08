@@ -247,4 +247,56 @@ Send the access token in the **Authorization** header for protected endpoints:
 Authorization: Bearer <accessToken>
 ```
 
-Example: `GET /api/users`, `GET /api/users/{id}`, etc.
+Example: `GET /api/users/me`, `GET /api/bookings`, etc.
+
+---
+
+## Mahirs (search professionals)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/mahirs` | No | Search Mahirs. Query: `page`, `size`, `categoryId` (optional). Returns paginated list with `averageRating` and `reviewCount`. |
+| GET | `/api/mahirs/{id}` | No | Get one Mahir by ID. |
+| GET | `/api/mahirs/{mahirId}/reviews` | No | List reviews for a Mahir. Query: `page`, `size`. |
+
+---
+
+## My profile
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/users/me` | Bearer | Get current user profile. |
+| PUT | `/api/users/me` | Bearer | Update current user. Body: `fullName`, `phoneNumber`, `dateOfBirth`, `location`, `accountType`, `serviceCategoryIds`, `customServiceName`, `password` (all optional). MAHIR can update categories and customServiceName. |
+
+---
+
+## Bookings
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/bookings` | Bearer | Create booking (USER only). Body: `mahirId`, `scheduledAt`, `message`. |
+| GET | `/api/bookings` | Bearer | List my bookings (as customer or Mahir). Query: `page`, `size`. |
+| GET | `/api/bookings/{id}` | Bearer | Get booking by ID (customer or assigned Mahir only). |
+| PATCH | `/api/bookings/{id}/status?status=` | Bearer | Update status. Mahir: `ACCEPTED`, `REJECTED`, `COMPLETED`. Customer: `CANCELLED`. |
+
+Status values: `PENDING`, `ACCEPTED`, `REJECTED`, `COMPLETED`, `CANCELLED`.
+
+---
+
+## Reviews
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/reviews` | Bearer | Create review (USER/customer only). Body: `bookingId`, `rating` (1–5), `comment`. Booking must be `COMPLETED`; one review per booking. |
+| GET | `/api/mahirs/{mahirId}/reviews` | No | List reviews for a Mahir. Query: `page`, `size`. |
+
+---
+
+## Users (list, get by ID, update/delete own)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/users` | Bearer | List all users (paginated). Query: `page`, `size`. |
+| GET | `/api/users/{id}` | Bearer | Get user by ID. |
+| PUT | `/api/users/{id}` | Bearer | Update user. **Only own profile** (id must match current user). |
+| DELETE | `/api/users/{id}` | Bearer | Delete user. **Only own account** allowed. |

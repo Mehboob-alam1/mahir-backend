@@ -2,6 +2,7 @@ package com.example.demoapp.controller;
 
 import com.example.demoapp.dto.*;
 import com.example.demoapp.service.AuthService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
+@Tag(name = "Auth", description = "Sign up, sign in, refresh, logout, check session, forgot/reset password")
 @RequiredArgsConstructor
 public class AuthController {
 

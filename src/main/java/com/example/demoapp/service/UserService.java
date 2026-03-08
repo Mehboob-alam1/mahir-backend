@@ -1,18 +1,24 @@
 package com.example.demoapp.service;
 
 import com.example.demoapp.dto.LocationDto;
+import com.example.demoapp.dto.UpdateProfileRequest;
 import com.example.demoapp.dto.UserRequest;
 import com.example.demoapp.dto.UserResponse;
 import com.example.demoapp.entity.Location;
 import com.example.demoapp.entity.User;
 import com.example.demoapp.exception.DuplicateResourceException;
 import com.example.demoapp.exception.ResourceNotFoundException;
+import com.example.demoapp.exception.UnauthorizedException;
+import com.example.demoapp.repository.CategoryRepository;
 import com.example.demoapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +27,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -40,7 +47,57 @@ public class UserService {
         return mapToResponse(user);
     }
 
-    public List<UserResponse> getAllUsers() {
+    public UserResponse getMe(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        return mapToResponse(user);
+    }
+
+    @Transactional
+    public UserResponse updateMe(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            user.setFullName(request.getFullName());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
+        if (request.getLocation() != null) {
+            user.setLocation(Location.builder()
+                    .streetAddress(request.getLocation().getStreetAddress())
+                    .latitude(request.getLocation().getLatitude())
+                    .longitude(request.getLocation().getLongitude())
+                    .build());
+        }
+        if (request.getAccountType() != null) {
+            user.setAccountType(request.getAccountType());
+        }
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        if (user.getRole() == com.example.demoapp.entity.Role.MAHIR) {
+            if (request.getServiceCategoryIds() != null) {
+                user.setServiceCategories(request.getServiceCategoryIds().isEmpty()
+                        ? new ArrayList<>()
+                        : categoryRepository.findAllById(request.getServiceCategoryIds()));
+            }
+            if (request.getCustomServiceName() != null) {
+                user.setCustomServiceName(request.getCustomServiceName());
+            }
+        }
+        user = userRepository.save(user);
+        return mapToResponse(user);
+    }
+
+    public Page<UserResponse> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).map(this::mapToResponse);
+    }
+
+    public List<UserResponse> getAllUsersList() {
         return userRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
@@ -54,14 +111,15 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse updateUser(Long id, UserRequest request) {
+    public UserResponse updateUser(Long id, Long currentUserId, UserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
-
+        if (!id.equals(currentUserId)) {
+            throw new UnauthorizedException("You can only update your own profile. Use PUT /api/users/me for your profile.");
+        }
         if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already registered: " + request.getEmail());
         }
-
         user.setFullName(request.getName());
         user.setEmail(request.getEmail());
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
@@ -72,7 +130,10 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUser(Long id) {
+    public void deleteUser(Long id, Long currentUserId) {
+        if (!id.equals(currentUserId)) {
+            throw new UnauthorizedException("You can only delete your own account.");
+        }
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("User", id);
         }
