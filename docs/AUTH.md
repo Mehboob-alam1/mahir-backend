@@ -1,5 +1,7 @@
 # Authentication API Documentation
 
+For **request/response structures and success/failure examples for every API**, see **[API_REFERENCE.md](./API_REFERENCE.md)**.
+
 Authentication uses **email and password** (no OTP). Two roles: **USER** (Find Mahir – customer) and **MAHIR** (Become Mahir – professional). Login is the same for both.
 
 ---
