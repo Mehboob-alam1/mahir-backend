@@ -76,4 +76,12 @@ public class JobController {
         jobService.cancel(id, principal.getUserId());
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/whatsapp-contact")
+    public ResponseEntity<com.example.demoapp.dto.WhatsAppContactResponse> whatsappContact(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id) {
+        if (principal == null) throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        return ResponseEntity.ok(jobService.whatsappContact(id, principal.getUserId()));
+    }
 }

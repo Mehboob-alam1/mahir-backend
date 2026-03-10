@@ -28,6 +28,8 @@ public class UserResponse {
     private String customServiceName;
     private String avatarUrl;
     private String bio;
+    /** For MAHIR: credits for WhatsApp contact (1 per job). */
+    private Integer credits;
     private LocalDateTime createdAt;
 
     @Getter

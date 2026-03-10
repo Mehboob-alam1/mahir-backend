@@ -78,6 +78,7 @@ public class AuthService {
             }
             user.setServiceCategories(categories);
             user.setCustomServiceName(request.getCustomServiceName());
+            user.setCredits(3); // Free Mahirs get 3 credits for WhatsApp contact
         }
 
         user = userRepository.save(user);
@@ -231,6 +232,7 @@ public class AuthService {
                 .accountType(user.getAccountType())
                 .serviceCategories(UserResponse.fromCategoryList(user.getServiceCategories() != null ? user.getServiceCategories() : List.of()))
                 .customServiceName(user.getCustomServiceName())
+                .credits(user.getCredits())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

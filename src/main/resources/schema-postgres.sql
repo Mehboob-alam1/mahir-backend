@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
     custom_service_name VARCHAR(200),
     avatar_url VARCHAR(500),
     bio VARCHAR(1000),
+    credits INTEGER,
     created_at TIMESTAMP NOT NULL
 );
 

@@ -124,15 +124,15 @@ public class BookingService {
             if (!booking.getMahir().getId().equals(userId)) {
                 throw new UnauthorizedException("Only the assigned Mahir can update status");
             }
-            if (status != BookingStatus.IN_PROGRESS && status != BookingStatus.COMPLETED) {
-                throw new UnauthorizedException("Mahir can set status to IN_PROGRESS or COMPLETED");
+            if (status != BookingStatus.CANCELLED) {
+                throw new UnauthorizedException("Mahir can only cancel the booking");
             }
         } else {
             if (!booking.getCustomer().getId().equals(userId)) {
-                throw new UnauthorizedException("Only the customer can update this booking");
+                throw new UnauthorizedException("Only the job poster (customer) can update this booking");
             }
-            if (status != BookingStatus.CANCELLED) {
-                throw new UnauthorizedException("Customer can only cancel the booking");
+            if (status != BookingStatus.REACHED && status != BookingStatus.IN_PROGRESS && status != BookingStatus.COMPLETED && status != BookingStatus.CANCELLED) {
+                throw new UnauthorizedException("Customer can set REACHED, IN_PROGRESS, COMPLETED, or CANCELLED");
             }
         }
         booking.setStatus(status);

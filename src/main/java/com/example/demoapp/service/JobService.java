@@ -4,6 +4,7 @@ import com.example.demoapp.dto.JobRequest;
 import com.example.demoapp.dto.JobResponse;
 import com.example.demoapp.dto.JobUpdateRequest;
 import com.example.demoapp.dto.LocationDto;
+import com.example.demoapp.dto.WhatsAppContactResponse;
 import com.example.demoapp.entity.*;
 import com.example.demoapp.exception.ResourceNotFoundException;
 import com.example.demoapp.exception.UnauthorizedException;
@@ -115,6 +116,27 @@ public class JobService {
         }
         job.setStatus(JobStatus.CANCELLED);
         jobRepository.save(job);
+    }
+
+    /** Mahir uses 1 credit to get job poster's phone for WhatsApp contact. */
+    @Transactional
+    public WhatsAppContactResponse whatsappContact(Long jobId, Long mahirId) {
+        Job job = jobRepository.findById(jobId).orElseThrow(() -> new ResourceNotFoundException("Job", jobId));
+        User mahir = userRepository.findById(mahirId).orElseThrow(() -> new ResourceNotFoundException("User", mahirId));
+        if (mahir.getRole() != Role.MAHIR) {
+            throw new UnauthorizedException("Only Mahirs can use WhatsApp contact");
+        }
+        int credits = mahir.getCredits() == null ? 0 : mahir.getCredits();
+        if (credits < 1) {
+            throw new UnauthorizedException("No credits left. Use Apply to send a request instead.");
+        }
+        mahir.setCredits(credits - 1);
+        userRepository.save(mahir);
+        String posterPhone = job.getPostedBy().getPhoneNumber() != null ? job.getPostedBy().getPhoneNumber() : "";
+        return WhatsAppContactResponse.builder()
+                .posterPhoneNumber(posterPhone)
+                .remainingCredits(mahir.getCredits())
+                .build();
     }
 
     private JobResponse toResponse(Job j) {

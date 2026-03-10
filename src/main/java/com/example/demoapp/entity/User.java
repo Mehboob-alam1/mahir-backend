@@ -66,6 +66,10 @@ public class User {
     @Column(length = 1000)
     private String bio;
 
+    /** For MAHIR: credits for WhatsApp contact (1 per job). Free Mahirs get 3. */
+    @Column(name = "credits")
+    private Integer credits;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

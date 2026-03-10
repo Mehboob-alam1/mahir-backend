@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 public class SignUpRequest {
 
-    @NotNull(message = "Role is required (USER or MAHIR)")
+    @NotNull(message = "Role is required (USER, MAHIR or ADMIN)")
     private Role role;
 
     @NotBlank(message = "Full name is required")

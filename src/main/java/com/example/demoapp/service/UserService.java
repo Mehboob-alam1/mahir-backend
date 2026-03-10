@@ -200,6 +200,7 @@ public class UserService {
                 .customServiceName(user.getCustomServiceName())
                 .avatarUrl(user.getAvatarUrl())
                 .bio(user.getBio())
+                .credits(user.getCredits())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
