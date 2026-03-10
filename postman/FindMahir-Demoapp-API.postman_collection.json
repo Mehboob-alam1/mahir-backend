@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth, Jobs, Bids, Bookings, Chat, Users, Mahirs, Reviews, Notifications.\n\n**baseUrl:** Railway default. Local: http://localhost:8080.\n\n**Setup:** Sign In or Sign Up; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId.",
+    "description": "Find Mahir API: Auth (USER, MAHIR, ADMIN), Jobs, WhatsApp contact (1 credit), Bids, Bookings (REACHED → IN_PROGRESS → COMPLETED), Chat, Users, Mahirs, Reviews, Notifications.\n\n**baseUrl:** Railway default. Local: http://localhost:8080.\n\n**Setup:** Sign In or Sign Up; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -71,7 +71,34 @@
               "raw": "{\n  \"role\": \"MAHIR\",\n  \"fullName\": \"Sara Ahmed\",\n  \"email\": \"sara@example.com\",\n  \"password\": \"secret123\",\n  \"phoneNumber\": \"+923009876543\",\n  \"dateOfBirth\": \"1988-11-10\",\n  \"location\": {\n    \"streetAddress\": \"Gulberg III, Lahore\",\n    \"latitude\": 31.52,\n    \"longitude\": 74.36\n  },\n  \"accountType\": \"PREMIUM\",\n  \"serviceCategoryIds\": [1, 2],\n  \"customServiceName\": \"Custom Home Repairs\"\n}"
             },
             "url": "{{baseUrl}}/auth/signup",
-            "description": "Register as Become Mahir (professional). Role MAHIR. Use category IDs from GET /api/categories or set customServiceName."
+            "description": "Register as Become Mahir (professional). Role MAHIR. Use category IDs from GET /api/categories or set customServiceName. MAHIR gets 3 credits for WhatsApp contact."
+          }
+        },
+        {
+          "name": "Sign Up (ADMIN)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                "  if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                "  if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\",\n  \"fullName\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"secret123\",\n  \"phoneNumber\": \"+923000000000\",\n  \"dateOfBirth\": \"1990-01-01\",\n  \"location\": {\n    \"streetAddress\": \"Admin Office\",\n    \"latitude\": 24.8,\n    \"longitude\": 67.05\n  },\n  \"accountType\": \"FREEMIUM\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signup",
+            "description": "Register as ADMIN. Can authenticate like USER/MAHIR. No service categories or credits."
           }
         },
         {
@@ -98,7 +125,7 @@
               "raw": "{\n  \"email\": \"ali@example.com\",\n  \"password\": \"secret123\"\n}"
             },
             "url": "{{baseUrl}}/auth/signin",
-            "description": "Login (same for USER and MAHIR). Saves tokens to collection variables."
+            "description": "Login (same for USER, MAHIR and ADMIN). Saves tokens to collection variables."
           }
         },
         {
@@ -226,6 +253,15 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/jobs/{{jobId}}",
             "description": "Job detail (poster, category, location, budget, status)."
+          }
+        },
+        {
+          "name": "WhatsApp Contact (1 credit)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/whatsapp-contact",
+            "description": "MAHIR only. Uses 1 credit; returns posterPhoneNumber and remainingCredits. Fails if no credits (use Apply instead)."
           }
         },
         {
@@ -376,7 +412,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/users/me",
-            "description": "Get current user profile. Requires Bearer token."
+            "description": "Get current user profile (includes credits for MAHIR). Requires Bearer token."
           }
         },
         {
@@ -494,7 +530,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/bookings?page=0&size=20",
-            "description": "List my bookings. Add &status=ACCEPTED or IN_PROGRESS or COMPLETED or CANCELLED to filter."
+            "description": "List my bookings. Add &status=ACCEPTED or REACHED or IN_PROGRESS or COMPLETED or CANCELLED to filter."
           }
         },
         {
@@ -507,30 +543,12 @@
           }
         },
         {
-          "name": "Update Booking Status (Accept)",
+          "name": "Update Booking Status (Reached)",
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "PATCH",
-            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=ACCEPTED",
-            "description": "Mahir: set status to ACCEPTED, REJECTED, or COMPLETED. Customer: set to CANCELLED."
-          }
-        },
-        {
-          "name": "Update Booking Status (Reject)",
-          "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
-            "method": "PATCH",
-            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=REJECTED",
-            "description": "Mahir rejects the booking."
-          }
-        },
-        {
-          "name": "Update Booking Status (Completed)",
-          "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
-            "method": "PATCH",
-            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=COMPLETED",
-            "description": "Mahir marks booking as completed."
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=REACHED",
+            "description": "USER (job poster) only. Set when Mahir has reached or agreed on chat (time/place)."
           }
         },
         {
@@ -539,7 +557,16 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "PATCH",
             "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=IN_PROGRESS",
-            "description": "Mahir marks job as in progress."
+            "description": "USER (job poster) only. Set when job is working / in progress."
+          }
+        },
+        {
+          "name": "Update Booking Status (Completed)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/status?status=COMPLETED",
+            "description": "USER (job poster) only. Set when job is done. Customer can then leave a review."
           }
         },
         {
