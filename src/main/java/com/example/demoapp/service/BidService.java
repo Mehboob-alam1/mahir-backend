@@ -40,11 +40,12 @@ public class BidService {
         if (bidRepository.existsByJobIdAndMahirId(jobId, mahirId)) {
             throw new UnauthorizedException("You have already bid on this job");
         }
+        java.math.BigDecimal price = request.getProposedPrice() != null ? request.getProposedPrice() : java.math.BigDecimal.ZERO;
         Bid bid = Bid.builder()
                 .job(job)
                 .mahir(mahir)
                 .message(request.getMessage())
-                .proposedPrice(request.getProposedPrice())
+                .proposedPrice(price)
                 .proposedAt(request.getProposedAt())
                 .estimatedDurationHours(request.getEstimatedDurationHours())
                 .status(BidStatus.PENDING)
@@ -64,11 +65,14 @@ public class BidService {
         if (user.getRole() == Role.MAHIR) {
             return bidRepository.findByJobAndMahirOrderByCreatedAtDesc(job, user, pageable).map(this::toBidResponse);
         }
-        return bidRepository.findByJobOrderByCreatedAtDesc(job, pageable).map(this::toBidResponse);
+        throw new UnauthorizedException("Only the job poster or a bidding Mahir can list bids for this job");
     }
 
     public Page<BidResponse> listMyBids(Long mahirId, BidStatus status, Pageable pageable) {
         User mahir = userRepository.findById(mahirId).orElseThrow(() -> new ResourceNotFoundException("User", mahirId));
+        if (mahir.getRole() != Role.MAHIR) {
+            throw new UnauthorizedException("Only Mahirs can list their bids");
+        }
         Page<Bid> page = status != null
                 ? bidRepository.findByMahirAndStatusOrderByCreatedAtDesc(mahir, status, pageable)
                 : bidRepository.findByMahirOrderByCreatedAtDesc(mahir, pageable);

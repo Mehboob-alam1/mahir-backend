@@ -7,12 +7,17 @@ import com.example.demoapp.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
 public interface BidRepository extends JpaRepository<Bid, Long> {
+
+    @Query("SELECT COUNT(b) FROM Bid b WHERE b.job.id = :jobId")
+    long countByJobId(@Param("jobId") Long jobId);
 
     Page<Bid> findByJobOrderByCreatedAtDesc(Job job, Pageable pageable);
 

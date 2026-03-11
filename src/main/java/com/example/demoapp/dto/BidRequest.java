@@ -13,10 +13,10 @@ import java.time.LocalDateTime;
 @Builder
 public class BidRequest {
 
+    @NotBlank(message = "Message is required")
     @Size(max = 2000)
     private String message;
 
-    @NotNull(message = "Proposed price is required")
     @DecimalMin("0")
     private BigDecimal proposedPrice;
 

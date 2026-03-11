@@ -12,6 +12,8 @@ import java.time.Instant;
 public class ChatThreadSummaryResponse {
 
     private Long id;
+    /** Same as id; use for API compatibility. */
+    private Long threadId;
     private Long bookingId;
     private String otherPartyName;
     private String otherPartyAvatarUrl;

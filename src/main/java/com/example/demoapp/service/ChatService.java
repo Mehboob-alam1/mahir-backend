@@ -85,6 +85,7 @@ public class ChatService {
                 .filter(m -> !m.getSender().getId().equals(currentUserId) && m.getReadAt() == null).count();
         return ChatThreadSummaryResponse.builder()
                 .id(t.getId())
+                .threadId(t.getId())
                 .bookingId(b.getId())
                 .otherPartyName(other.getFullName())
                 .otherPartyAvatarUrl(other.getAvatarUrl())

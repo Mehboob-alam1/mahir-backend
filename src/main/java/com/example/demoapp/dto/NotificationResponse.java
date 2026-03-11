@@ -16,6 +16,8 @@ public class NotificationResponse {
     private String title;
     private String body;
     private Long relatedId;
+    /** Same as relatedId (e.g. bookingId, jobId). */
+    private Long referenceId;
     private Boolean read;
     private Instant createdAt;
 }

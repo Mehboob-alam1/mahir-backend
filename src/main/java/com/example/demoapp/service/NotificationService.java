@@ -60,6 +60,7 @@ public class NotificationService {
                 .title(n.getTitle())
                 .body(n.getBody())
                 .relatedId(n.getRelatedId())
+                .referenceId(n.getRelatedId())
                 .read(n.getReadAt() != null)
                 .createdAt(n.getCreatedAt())
                 .build();

@@ -25,6 +25,7 @@ public class JobRequest {
     private Long categoryId;
 
     @Valid
+    @NotNull(message = "Location is required")
     private LocationDto location;
 
     private LocalDateTime scheduledAt;

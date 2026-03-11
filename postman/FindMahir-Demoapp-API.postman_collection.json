@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth (USER, MAHIR, ADMIN), Jobs, WhatsApp contact (1 credit), Bids, Bookings (REACHED → IN_PROGRESS → COMPLETED), Chat, Users, Mahirs, Reviews, Notifications.\n\n**baseUrl:** Railway default. Local: http://localhost:8080.\n\n**Setup:** Sign In or Sign Up; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId.",
+    "description": "Find Mahir API: Auth (USER, MAHIR, ADMIN), Jobs (with bidCount), WhatsApp contact (1 credit), Bids (message required; proposedPrice optional), Bookings (REACHED → IN_PROGRESS → COMPLETED), Chat (threadId), Notifications (referenceId), Users, Mahirs, Reviews.\n\n**baseUrl:** Railway default. Local: http://localhost:8080.\n\n**Setup:** Sign In or Sign Up; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -14,6 +14,7 @@
     { "key": "bidId", "value": "" },
     { "key": "bookingId", "value": "" },
     { "key": "threadId", "value": "" },
+    { "key": "notificationId", "value": "" },
     { "key": "resetToken", "value": "" }
   ],
   "item": [
@@ -234,7 +235,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/jobs?filter=my&page=0&size=20",
-            "description": "USER: list my jobs. Add &status=OPEN or status=ASSIGNED etc."
+            "description": "USER: list my posted jobs. Response includes bidCount per job. Add &status=OPEN or ASSIGNED etc."
           }
         },
         {
@@ -243,7 +244,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/jobs?page=0&size=20",
-            "description": "MAHIR: list open jobs. Add &categoryId=1 to filter by category."
+            "description": "MAHIR: list open jobs. Response includes bidCount per job. Add &categoryId=1 to filter."
           }
         },
         {
@@ -252,7 +253,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/jobs/{{jobId}}",
-            "description": "Job detail (poster, category, location, budget, status)."
+            "description": "Job detail: poster, category, location, budget, status, bidCount."
           }
         },
         {
@@ -315,7 +316,7 @@
               "raw": "{\n  \"message\": \"I can do this at 900 Rs/hr. Available weekends.\",\n  \"proposedPrice\": 1800,\n  \"proposedAt\": \"2025-03-15T14:00:00\",\n  \"estimatedDurationHours\": 2\n}"
             },
             "url": "{{baseUrl}}/api/jobs/{{jobId}}/bids",
-            "description": "MAHIR bids on a job. One bid per Mahir per job. Saves bidId."
+            "description": "MAHIR applies to a job. Message required; proposedPrice, proposedAt (ISO-8601), estimatedDurationHours optional. One bid per Mahir per job. Saves bidId."
           }
         },
         {
@@ -324,7 +325,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/jobs/{{jobId}}/bids?page=0&size=20",
-            "description": "USER: all bids for this job. MAHIR: only their bid."
+            "description": "Poster: all bids for this job. MAHIR: only their own bid. Others get 403."
           }
         },
         {
@@ -333,7 +334,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/bids?page=0&size=20",
-            "description": "MAHIR: list my bids. Add &status=PENDING or ACCEPTED etc."
+            "description": "MAHIR only (403 for others). List my bids. Add &status=PENDING or ACCEPTED etc."
           }
         },
         {
@@ -619,7 +620,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/chats",
-            "description": "List my chat threads (other party, last message, unread count)."
+            "description": "List my chat threads. Response: threadId, otherPartyName, lastMessagePreview, lastMessageAt, unreadCount. After bid accept, thread appears for both customer and Mahir."
           }
         },
         {
@@ -652,11 +653,23 @@
       "item": [
         {
           "name": "List My Notifications",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.content && json.content.length > 0 && json.content[0].id) pm.collectionVariables.set('notificationId', json.content[0].id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/notifications?page=0&size=20",
-            "description": "Paginated list of my notifications (bid received, accepted, rejected, booking cancelled, chat message)."
+            "description": "Paginated list: title, body, type, referenceId (e.g. bookingId), read, createdAt. Types: BID_RECEIVED, BID_ACCEPTED, BID_REJECTED, BOOKING_CANCELLED, CHAT_MESSAGE."
           }
         },
         {
@@ -673,8 +686,8 @@
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "PATCH",
-            "url": "{{baseUrl}}/api/notifications/1/read",
-            "description": "Mark a notification as read. Replace 1 with notification id from list."
+            "url": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+            "description": "Mark a notification as read. Uses notificationId (set by List My Notifications) or set variable manually."
           }
         }
       ]

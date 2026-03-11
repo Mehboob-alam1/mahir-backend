@@ -28,6 +28,7 @@ public class JobResponse {
     private BigDecimal budgetMax;
     private Integer durationHours;
     private JobStatus status;
+    private Integer bidCount;
     private Instant createdAt;
     private Instant updatedAt;
 }

@@ -146,6 +146,7 @@ public class JobService {
                 .latitude(loc.getLatitude())
                 .longitude(loc.getLongitude())
                 .build();
+        int bidCount = (int) bidRepository.countByJobId(j.getId());
         return JobResponse.builder()
                 .id(j.getId())
                 .postedById(j.getPostedBy().getId())
@@ -161,6 +162,7 @@ public class JobService {
                 .budgetMax(j.getBudgetMax())
                 .durationHours(j.getDurationHours())
                 .status(j.getStatus())
+                .bidCount(bidCount)
                 .createdAt(j.getCreatedAt())
                 .updatedAt(j.getUpdatedAt())
                 .build();
