@@ -431,6 +431,20 @@
           }
         },
         {
+          "name": "Save FCM Token (push notifications)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcmToken\": \"<device FCM token from Firebase SDK>\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/me/fcm-token",
+            "description": "Store FCM token for push notifications. App calls this after login with the device token from Firebase. When backend creates a notification, it also sends FCM push to this token. See docs/FIREBASE_PUSH_SETUP.md."
+          }
+        },
+        {
           "name": "Create User",
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },

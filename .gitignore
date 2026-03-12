@@ -31,6 +31,10 @@ hs_err_pid*
 application-local.properties
 application-local.yml
 
+# Firebase (keep service account JSON secret)
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+
 # OS
 .DS_Store
 Thumbs.db

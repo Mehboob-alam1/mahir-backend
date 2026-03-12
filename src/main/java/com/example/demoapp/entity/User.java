@@ -70,6 +70,10 @@ public class User {
     @Column(name = "credits")
     private Integer credits;
 
+    /** FCM token for push notifications (app sends via POST /api/users/me/fcm-token). */
+    @Column(name = "fcm_token", length = 500)
+    private String fcmToken;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

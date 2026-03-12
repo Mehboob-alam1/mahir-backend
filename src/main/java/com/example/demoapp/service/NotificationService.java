@@ -19,6 +19,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final PushNotificationService pushNotificationService;
 
     @Transactional
     public void create(Long userId, String type, String title, String body, Long relatedId) {
@@ -31,6 +32,7 @@ public class NotificationService {
                 .relatedId(relatedId)
                 .build();
         notificationRepository.save(n);
+        pushNotificationService.sendToUser(userId, title, body);
     }
 
     public Page<NotificationResponse> listMy(Long userId, Pageable pageable) {

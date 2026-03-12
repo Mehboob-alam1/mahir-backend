@@ -7,6 +7,7 @@ import com.example.demoapp.exception.ResourceNotFoundException;
 import com.example.demoapp.exception.UnauthorizedException;
 import com.example.demoapp.repository.BookingRepository;
 import com.example.demoapp.repository.ChatThreadRepository;
+import com.example.demoapp.repository.JobRepository;
 import com.example.demoapp.repository.UserRepository;
 import com.example.demoapp.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final ChatThreadRepository chatThreadRepository;
+    private final JobRepository jobRepository;
     private final NotificationService notificationService;
 
     /** Called when user accepts a bid: creates booking and chat thread. */
@@ -137,6 +139,11 @@ public class BookingService {
         }
         booking.setStatus(status);
         booking = bookingRepository.save(booking);
+        if (status == BookingStatus.COMPLETED && booking.getJob() != null) {
+            Job job = booking.getJob();
+            job.setStatus(JobStatus.COMPLETED);
+            jobRepository.save(job);
+        }
         return toResponse(booking);
     }
 

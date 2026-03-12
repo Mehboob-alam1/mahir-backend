@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_url VARCHAR(500),
     bio VARCHAR(1000),
     credits INTEGER,
+    fcm_token VARCHAR(500),
     created_at TIMESTAMP NOT NULL
 );
 

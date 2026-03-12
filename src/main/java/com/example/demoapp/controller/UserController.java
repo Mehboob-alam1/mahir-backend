@@ -1,5 +1,6 @@
 package com.example.demoapp.controller;
 
+import com.example.demoapp.dto.FcmTokenRequest;
 import com.example.demoapp.dto.UpdateProfileRequest;
 import com.example.demoapp.dto.UserRequest;
 import com.example.demoapp.dto.UserResponse;
@@ -49,6 +50,17 @@ public class UserController {
         }
         UserResponse response = userService.updateMe(principal.getUserId(), request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/me/fcm-token")
+    public ResponseEntity<Void> saveFcmToken(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody FcmTokenRequest request) {
+        if (principal == null) {
+            throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        }
+        userService.saveFcmToken(principal.getUserId(), request.getFcmToken());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping

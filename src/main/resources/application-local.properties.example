@@ -1,0 +1,7 @@
+# Copy this file to application-local.properties (gitignored) and set your values.
+# Used for local development only.
+# Run with: -Dspring.profiles.active=local (so this file is loaded).
+
+# Firebase FCM: path to your service account JSON (private key).
+# Example (your key in Downloads):
+app.firebase.service-account-path=/Users/mac/Downloads/mahir-37ddd-firebase-adminsdk-fbsvc-5dadcecde4.json

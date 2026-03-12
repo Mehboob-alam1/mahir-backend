@@ -58,6 +58,14 @@ public class UserService {
     }
 
     @Transactional
+    public void saveFcmToken(Long userId, String fcmToken) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        user.setFcmToken(fcmToken != null && !fcmToken.isBlank() ? fcmToken : null);
+        userRepository.save(user);
+    }
+
+    @Transactional
     public UserResponse updateMe(Long userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
