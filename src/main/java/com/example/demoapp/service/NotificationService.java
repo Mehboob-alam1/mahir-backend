@@ -40,6 +40,14 @@ public class NotificationService {
         return notificationRepository.findByUserOrderByCreatedAtDesc(user, pageable).map(this::toResponse);
     }
 
+    /** For debugging push: is Firebase ready and does this user have a token? */
+    public java.util.Map<String, Object> pushStatus(Long userId) {
+        return java.util.Map.of(
+                "firebaseInitialized", pushNotificationService.isFirebaseInitialized(),
+                "hasFcmToken", pushNotificationService.userHasFcmToken(userId)
+        );
+    }
+
     public long unreadCount(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", userId));
         return notificationRepository.countByUserAndReadAtIsNull(user);

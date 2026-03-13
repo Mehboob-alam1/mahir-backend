@@ -1,5 +1,6 @@
 package com.example.demoapp.service;
 
+import com.example.demoapp.entity.User;
 import com.example.demoapp.repository.UserRepository;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -27,12 +28,18 @@ public class PushNotificationService {
      */
     public void sendToUser(Long userId, String title, String body) {
         if (userId == null || (title == null && body == null)) return;
-        if (FirebaseApp.getApps().isEmpty()) return;
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.info("FCM push skipped for user {}: Firebase not initialized (set APP_FIREBASE_SERVICE_ACCOUNT_JSON on server)", userId);
+            return;
+        }
 
         String token = userRepository.findById(userId)
                 .map(u -> u.getFcmToken())
                 .orElse(null);
-        if (token == null || token.isBlank()) return;
+        if (token == null || token.isBlank()) {
+            log.info("FCM push skipped for user {}: no FCM token (app must call POST /api/users/me/fcm-token after login)", userId);
+            return;
+        }
 
         try {
             Message message = Message.builder()
@@ -43,9 +50,21 @@ public class PushNotificationService {
                             .build())
                     .build();
             String msgId = FirebaseMessaging.getInstance().send(message);
-            log.debug("FCM push sent to user {}: {}", userId, msgId);
+            log.info("FCM push sent to user {}: messageId={}", userId, msgId);
         } catch (FirebaseMessagingException e) {
-            log.warn("FCM send failed for user {}: {}", userId, e.getMessage());
+            log.warn("FCM push failed for user {}: {} (token may be invalid or expired; app should send token again)", userId, e.getMessage());
         }
+    }
+
+    /** For debugging: is Firebase initialized (can we send FCM)? */
+    public boolean isFirebaseInitialized() {
+        return !FirebaseApp.getApps().isEmpty();
+    }
+
+    /** For debugging: does this user have an FCM token stored? */
+    public boolean userHasFcmToken(Long userId) {
+        if (userId == null) return false;
+        String token = userRepository.findById(userId).map(User::getFcmToken).orElse(null);
+        return token != null && !token.isBlank();
     }
 }

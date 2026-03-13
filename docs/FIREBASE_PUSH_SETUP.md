@@ -137,3 +137,30 @@ So **notifications work** in two ways:
 | 5 | Backend: when creating a notification, it also calls FCM to send to the user’s token (implemented in `NotificationService` + `PushNotificationService`). |
 
 If any step is missing (e.g. no Firebase key on server, or no token sent), the backend still runs and **in-app notifications** still work; only **device push** is skipped until the setup is complete.
+
+---
+
+## Why push didn’t appear – checklist
+
+1. **Backend: Firebase not initialized**  
+   - **Check:** On the server (e.g. Railway), is **`APP_FIREBASE_SERVICE_ACCOUNT_JSON`** set to the full JSON of your Firebase service account?  
+   - **Check:** Call **GET /api/notifications/push-status** (with Bearer token). If **`firebaseInitialized`** is `false`, the env var is missing or invalid.
+
+2. **Backend: User has no FCM token**  
+   - The backend only sends push to users who have registered a token.  
+   - **Check:** Call **GET /api/notifications/push-status**. If **`hasFcmToken`** is `false`, the app has not called **POST /api/users/me/fcm-token** (with the device token) after login for that user.  
+   - **Fix:** In the app, after login (and when you have the FCM token from Firebase SDK), call **POST /api/users/me/fcm-token** with body `{ "fcmToken": "<token>" }`.
+
+3. **App and backend use different Firebase projects**  
+   - The FCM token is for one Firebase project. The backend must use the **same project’s** service account JSON.  
+   - **Fix:** Use the same Firebase project (e.g. mahir-37ddd) in both app and backend.
+
+4. **Invalid or expired token**  
+   - After app reinstall or token refresh, the old token may be invalid.  
+   - **Fix:** App should send the new token to **POST /api/users/me/fcm-token** whenever Firebase gives a new token (e.g. `onTokenRefresh`).
+
+5. **Server logs**  
+   - On deploy (e.g. Railway), check logs when a notification is created. You should see either:  
+     - `FCM push sent to user X: messageId=...` (success), or  
+     - `FCM push skipped for user X: Firebase not initialized...` or `...no FCM token...`, or  
+     - `FCM push failed for user X: ...` (e.g. invalid token).

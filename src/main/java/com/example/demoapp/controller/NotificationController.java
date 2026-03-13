@@ -30,6 +30,12 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.listMy(principal.getUserId(), pageable));
     }
 
+    @GetMapping("/push-status")
+    public ResponseEntity<Map<String, Object>> pushStatus(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        return ResponseEntity.ok(notificationService.pushStatus(principal.getUserId()));
+    }
+
     @GetMapping("/unread-count")
     public ResponseEntity<Map<String, Long>> unreadCount(@AuthenticationPrincipal UserPrincipal principal) {
         if (principal == null) throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
