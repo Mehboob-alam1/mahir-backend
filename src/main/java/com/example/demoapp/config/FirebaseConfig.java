@@ -38,13 +38,20 @@ public class FirebaseConfig {
     public void init() {
         if (FirebaseApp.getApps().isEmpty() == false) return;
 
+        String envJson = System.getenv("APP_FIREBASE_SERVICE_ACCOUNT_JSON");
+        if (envJson != null && !envJson.isBlank()) {
+            log.info("Firebase: APP_FIREBASE_SERVICE_ACCOUNT_JSON is set (length={})", envJson.length());
+        } else {
+            log.info("Firebase: APP_FIREBASE_SERVICE_ACCOUNT_JSON is not set or empty. Set it in Railway Variables (full JSON).");
+        }
+
         InputStream stream = null;
         String source = null;
 
-        // Prefer property, then env var (Railway: APP_FIREBASE_SERVICE_ACCOUNT_JSON – Spring doesn't bind env with hyphen)
+        // Prefer property, then env var (Railway: APP_FIREBASE_SERVICE_ACCOUNT_JSON)
         String json = (serviceAccountJson != null && !serviceAccountJson.isBlank())
                 ? serviceAccountJson
-                : System.getenv("APP_FIREBASE_SERVICE_ACCOUNT_JSON");
+                : envJson;
         if (json != null && !json.isBlank()) {
             stream = new ByteArrayInputStream(json.trim().getBytes(StandardCharsets.UTF_8));
             source = "APP_FIREBASE_SERVICE_ACCOUNT_JSON";
