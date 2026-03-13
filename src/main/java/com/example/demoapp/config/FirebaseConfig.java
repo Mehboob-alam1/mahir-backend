@@ -41,19 +41,29 @@ public class FirebaseConfig {
         InputStream stream = null;
         String source = null;
 
-        if (serviceAccountJson != null && !serviceAccountJson.isBlank()) {
-            stream = new ByteArrayInputStream(serviceAccountJson.trim().getBytes(StandardCharsets.UTF_8));
-            source = "app.firebase.service-account-json";
-        } else if (serviceAccountJsonBase64 != null && !serviceAccountJsonBase64.isBlank()) {
-            try {
-                byte[] decoded = Base64.getDecoder().decode(serviceAccountJsonBase64.trim());
-                stream = new ByteArrayInputStream(decoded);
-                source = "app.firebase.service-account-json-base64";
-            } catch (IllegalArgumentException e) {
-                log.warn("Firebase: invalid base64 in service-account-json-base64. Push disabled.");
-                return;
+        // Prefer property, then env var (Railway: APP_FIREBASE_SERVICE_ACCOUNT_JSON – Spring doesn't bind env with hyphen)
+        String json = (serviceAccountJson != null && !serviceAccountJson.isBlank())
+                ? serviceAccountJson
+                : System.getenv("APP_FIREBASE_SERVICE_ACCOUNT_JSON");
+        if (json != null && !json.isBlank()) {
+            stream = new ByteArrayInputStream(json.trim().getBytes(StandardCharsets.UTF_8));
+            source = "APP_FIREBASE_SERVICE_ACCOUNT_JSON";
+        } else {
+            String base64 = (serviceAccountJsonBase64 != null && !serviceAccountJsonBase64.isBlank())
+                    ? serviceAccountJsonBase64
+                    : System.getenv("APP_FIREBASE_SERVICE_ACCOUNT_JSON_BASE64");
+            if (base64 != null && !base64.isBlank()) {
+                try {
+                    byte[] decoded = Base64.getDecoder().decode(base64.trim());
+                    stream = new ByteArrayInputStream(decoded);
+                    source = "APP_FIREBASE_SERVICE_ACCOUNT_JSON_BASE64";
+                } catch (IllegalArgumentException e) {
+                    log.warn("Firebase: invalid base64 in APP_FIREBASE_SERVICE_ACCOUNT_JSON_BASE64. Push disabled.");
+                    return;
+                }
             }
-        } else if (serviceAccountPath != null && !serviceAccountPath.isBlank()) {
+        }
+        if (stream == null && serviceAccountPath != null && !serviceAccountPath.isBlank()) {
             try {
                 stream = new FileInputStream(serviceAccountPath.trim());
                 source = "app.firebase.service-account-path";
