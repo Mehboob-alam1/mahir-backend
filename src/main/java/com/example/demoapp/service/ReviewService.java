@@ -25,6 +25,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public ReviewResponse create(Long userId, CreateReviewRequest request) {
@@ -52,6 +53,8 @@ public class ReviewService {
                 .comment(request.getComment())
                 .build();
         review = reviewRepository.save(review);
+        notificationService.create(booking.getMahir().getId(), "NEW_REVIEW", "New review",
+                "You received a new review. Tap to view.", booking.getId());
         return toResponse(review);
     }
 

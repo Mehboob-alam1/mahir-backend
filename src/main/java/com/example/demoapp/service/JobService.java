@@ -23,6 +23,7 @@ public class JobService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final BidRepository bidRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public JobResponse create(Long userId, JobRequest request) {
@@ -116,6 +117,10 @@ public class JobService {
         }
         job.setStatus(JobStatus.CANCELLED);
         jobRepository.save(job);
+        for (Bid bid : bidRepository.findByJobOrderByCreatedAtDesc(job, Pageable.unpaged()).getContent()) {
+            notificationService.create(bid.getMahir().getId(), "JOB_CANCELLED", "Job cancelled",
+                    "The job you applied to has been cancelled.", jobId);
+        }
     }
 
     /** Mahir uses 1 credit to get job poster's phone for WhatsApp contact. */

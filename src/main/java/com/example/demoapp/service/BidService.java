@@ -51,8 +51,8 @@ public class BidService {
                 .status(BidStatus.PENDING)
                 .build();
         bid = bidRepository.save(bid);
-        notificationService.create(job.getPostedBy().getId(), "BID_RECEIVED", "New bid on your job",
-                "You received a bid on: " + job.getTitle(), bid.getId());
+        notificationService.create(job.getPostedBy().getId(), "BID_RECEIVED", "New bid",
+                "You have a new bid on your job. Tap to view.", job.getId());
         return toBidResponse(bid);
     }
 
@@ -103,14 +103,14 @@ public class BidService {
                 b.setStatus(BidStatus.REJECTED);
                 bidRepository.save(b);
                 notificationService.create(b.getMahir().getId(), "BID_REJECTED", "Bid not accepted",
-                        "Your bid on \"" + job.getTitle() + "\" was not accepted.", jobId);
+                        "Your bid was not accepted for this job.", jobId);
             }
         }
         job.setStatus(JobStatus.ASSIGNED);
         jobRepository.save(job);
         com.example.demoapp.dto.BookingResponse booking = bookingService.createFromAcceptedBid(job, bid);
-        notificationService.create(bid.getMahir().getId(), "BID_ACCEPTED", "Your bid was accepted!",
-                "Your bid on \"" + job.getTitle() + "\" was accepted. Check your bookings.", booking.getId());
+        notificationService.create(bid.getMahir().getId(), "BID_ACCEPTED", "Bid accepted",
+                "Your bid was accepted. Tap to view the booking.", booking.getId());
         return booking;
     }
 
@@ -126,8 +126,8 @@ public class BidService {
         }
         bid.setStatus(BidStatus.REJECTED);
         bidRepository.save(bid);
-        notificationService.create(bid.getMahir().getId(), "BID_REJECTED", "Bid rejected",
-                "Your bid on \"" + job.getTitle() + "\" was rejected.", jobId);
+        notificationService.create(bid.getMahir().getId(), "BID_REJECTED", "Bid not accepted",
+                "Your bid was not accepted for this job.", jobId);
     }
 
     private BidResponse toBidResponse(Bid b) {

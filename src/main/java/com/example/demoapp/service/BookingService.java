@@ -105,7 +105,7 @@ public class BookingService {
         booking = bookingRepository.save(booking);
         User other = booking.getCustomer().getId().equals(userId) ? booking.getMahir() : booking.getCustomer();
         notificationService.create(other.getId(), "BOOKING_CANCELLED", "Booking cancelled",
-                "A booking was cancelled." + (reason != null && !reason.isBlank() ? " Reason: " + reason : ""), bookingId);
+                "The booking was cancelled." + (reason != null && !reason.isBlank() ? " Reason: " + reason : ""), bookingId);
         return toResponse(booking);
     }
 
@@ -139,6 +139,16 @@ public class BookingService {
         }
         booking.setStatus(status);
         booking = bookingRepository.save(booking);
+        if (status == BookingStatus.REACHED) {
+            notificationService.create(booking.getMahir().getId(), "BOOKING_STATUS_REACHED", "Customer marked you as reached",
+                    "The customer marked that you have reached.", bookingId);
+        } else if (status == BookingStatus.IN_PROGRESS) {
+            notificationService.create(booking.getMahir().getId(), "BOOKING_STATUS_IN_PROGRESS", "Job in progress",
+                    "The customer marked the job as in progress.", bookingId);
+        } else if (status == BookingStatus.COMPLETED) {
+            notificationService.create(booking.getMahir().getId(), "BOOKING_COMPLETED", "Job completed",
+                    "The customer marked the job as completed. You may receive a review.", bookingId);
+        }
         if (status == BookingStatus.COMPLETED && booking.getJob() != null) {
             Job job = booking.getJob();
             job.setStatus(JobStatus.COMPLETED);

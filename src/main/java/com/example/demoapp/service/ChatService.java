@@ -65,7 +65,10 @@ public class ChatService {
                 .build();
         msg = messageRepository.save(msg);
         User other = thread.getBooking().getCustomer().getId().equals(userId) ? thread.getBooking().getMahir() : thread.getBooking().getCustomer();
-        notificationService.create(other.getId(), "CHAT_MESSAGE", "New message", "You have a new message in your booking chat.", threadId);
+        String content = request.getContent() != null ? request.getContent() : "";
+        String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
+        String body = sender.getFullName() + ": " + (preview.isEmpty() ? "New message from " + sender.getFullName() : preview);
+        notificationService.create(other.getId(), "CHAT_MESSAGE", "New message", body, threadId);
         return toMessageResponse(msg);
     }
 
