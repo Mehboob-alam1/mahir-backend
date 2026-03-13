@@ -58,8 +58,16 @@ public class FirebaseConfig {
                 stream = new FileInputStream(serviceAccountPath.trim());
                 source = "app.firebase.service-account-path";
             } catch (Exception e) {
-                log.warn("Firebase: could not open file {}. Push disabled: {}", serviceAccountPath, e.getMessage());
-                return;
+                log.warn("Firebase: could not open file {}. Trying classpath.", serviceAccountPath);
+                stream = null;
+            }
+        }
+        // Fallback: load from classpath (file packaged in JAR – works on Railway)
+        if (stream == null) {
+            InputStream classpath = FirebaseConfig.class.getResourceAsStream("/firebase-service-account.json");
+            if (classpath != null) {
+                stream = classpath;
+                source = "classpath:/firebase-service-account.json";
             }
         }
 
