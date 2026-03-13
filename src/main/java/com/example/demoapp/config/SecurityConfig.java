@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/categories").permitAll()
                         .requestMatchers("/api/mahirs/**").permitAll()
+                        .requestMatchers("/api/test-notification").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()

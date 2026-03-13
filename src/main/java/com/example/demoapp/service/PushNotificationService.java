@@ -67,4 +67,36 @@ public class PushNotificationService {
         String token = userRepository.findById(userId).map(User::getFcmToken).orElse(null);
         return token != null && !token.isBlank();
     }
+
+    /**
+     * Send a push notification to a specific FCM device token (e.g. for testing).
+     * Uses FirebaseMessaging to send title and body. No-op if Firebase is not initialized.
+     */
+    public String sendToToken(String token, String title, String body) {
+        if (token == null || token.isBlank()) {
+            log.info("FCM sendToToken skipped: token is null or blank");
+            return null;
+        }
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.info("FCM sendToToken skipped: Firebase not initialized (set APP_FIREBASE_SERVICE_ACCOUNT_JSON or firebase-service-account.json)");
+            return null;
+        }
+        String t = token.trim();
+        log.info("FCM sending to token (length={}): title='{}', body='{}'", t.length(), title, body);
+        try {
+            Message message = Message.builder()
+                    .setToken(t)
+                    .setNotification(Notification.builder()
+                            .setTitle(title != null ? title : "")
+                            .setBody(body != null ? body : "")
+                            .build())
+                    .build();
+            String messageId = FirebaseMessaging.getInstance().send(message);
+            log.info("FCM sendToToken success: messageId={}", messageId);
+            return messageId;
+        } catch (FirebaseMessagingException e) {
+            log.warn("FCM sendToToken failed: {} (token may be invalid/expired)", e.getMessage());
+            throw new com.example.demoapp.exception.BadRequestException("FCM send failed: " + e.getMessage());
+        }
+    }
 }

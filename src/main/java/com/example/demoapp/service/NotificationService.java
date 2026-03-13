@@ -40,6 +40,14 @@ public class NotificationService {
         return notificationRepository.findByUserOrderByCreatedAtDesc(user, pageable).map(this::toResponse);
     }
 
+    /**
+     * Send a push notification to a specific FCM device token (e.g. for testing).
+     * Delegates to PushNotificationService. Returns FCM message ID or null if Firebase not initialized.
+     */
+    public String sendPushToToken(String token, String title, String body) {
+        return pushNotificationService.sendToToken(token, title, body);
+    }
+
     /** For debugging push: is Firebase ready and does this user have a token? */
     public java.util.Map<String, Object> pushStatus(Long userId) {
         return java.util.Map.of(

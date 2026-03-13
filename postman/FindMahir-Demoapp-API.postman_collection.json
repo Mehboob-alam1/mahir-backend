@@ -703,6 +703,19 @@
             "url": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
             "description": "Mark a notification as read. Uses notificationId (set by List My Notifications) or set variable manually."
           }
+        },
+        {
+          "name": "Send Test Push Notification",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"FCM_DEVICE_TOKEN\",\n  \"title\": \"Test Notification\",\n  \"body\": \"This is a test notification\"\n}"
+            },
+            "url": "{{baseUrl}}/api/test-notification",
+            "description": "Send a push notification to a specific FCM device token. No auth. Replace FCM_DEVICE_TOKEN with a real token from the app (e.g. after POST /api/users/me/fcm-token). 200 = sent (messageId); 503 = Firebase not initialized; 400 = invalid/expired token."
+          }
         }
       ]
     },
