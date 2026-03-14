@@ -683,7 +683,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/notifications?page=0&size=20",
-            "description": "Paginated list: title, body, type, referenceId (e.g. bookingId), read, createdAt. Types: BID_RECEIVED, BID_ACCEPTED, BID_REJECTED, BOOKING_CANCELLED, CHAT_MESSAGE."
+            "description": "Paginated list: title, body, type, referenceId (e.g. bookingId, jobId), read, createdAt. Types: NEW_JOB, BID_RECEIVED, BID_ACCEPTED, BOOKING_CONFIRMED, BID_REJECTED, JOB_CANCELLED, BOOKING_STATUS_*, BOOKING_COMPLETED, JOB_COMPLETED, BOOKING_CANCELLED, CHAT_MESSAGE, NEW_REVIEW."
           }
         },
         {

@@ -54,6 +54,16 @@ public class JobService {
                 .status(JobStatus.OPEN)
                 .build();
         job = jobRepository.save(job);
+        // Notify Mahirs in this category about the new job (limit 100 to avoid spam)
+        org.springframework.data.domain.Page<User> mahirsInCategory = userRepository.findByRoleAndServiceCategoriesId(
+                Role.MAHIR, job.getCategory().getId(), Pageable.ofSize(100));
+        String title = "New job";
+        String body = "A new job in " + job.getCategory().getName() + ": " + job.getTitle();
+        for (User mahir : mahirsInCategory.getContent()) {
+            if (!mahir.getId().equals(poster.getId())) {
+                notificationService.create(mahir.getId(), "NEW_JOB", title, body, job.getId());
+            }
+        }
         return toResponse(job);
     }
 

@@ -111,6 +111,8 @@ public class BidService {
         com.example.demoapp.dto.BookingResponse booking = bookingService.createFromAcceptedBid(job, bid);
         notificationService.create(bid.getMahir().getId(), "BID_ACCEPTED", "Bid accepted",
                 "Your bid was accepted. Tap to view the booking.", booking.getId());
+        notificationService.create(job.getPostedBy().getId(), "BOOKING_CONFIRMED", "Booking confirmed",
+                "You're booked with " + bid.getMahir().getFullName() + ". Tap to view.", booking.getId());
         return booking;
     }
 

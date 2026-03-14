@@ -148,6 +148,8 @@ public class BookingService {
         } else if (status == BookingStatus.COMPLETED) {
             notificationService.create(booking.getMahir().getId(), "BOOKING_COMPLETED", "Job completed",
                     "The customer marked the job as completed. You may receive a review.", bookingId);
+            notificationService.create(booking.getCustomer().getId(), "JOB_COMPLETED", "Job completed",
+                    "Your job has been marked completed.", bookingId);
         }
         if (status == BookingStatus.COMPLETED && booking.getJob() != null) {
             Job job = booking.getJob();

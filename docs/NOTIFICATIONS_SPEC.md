@@ -12,8 +12,10 @@ For each event below the backend:
 
 | Event | Recipient | type | referenceId | Status |
 |-------|-----------|------|-------------|--------|
+| New job posted | Each MAHIR in that category (up to 100) | NEW_JOB | jobId | ✅ |
 | New bid on my job | USER (job poster) | BID_RECEIVED | jobId | ✅ |
 | Bid accepted | MAHIR (bidder) | BID_ACCEPTED | bookingId | ✅ |
+| Booking confirmed (bid accepted) | USER (job poster) | BOOKING_CONFIRMED | bookingId | ✅ |
 | Bid rejected | MAHIR (bidder) | BID_REJECTED | jobId | ✅ |
 | Job cancelled | Each MAHIR who bid | JOB_CANCELLED | jobId | ✅ |
 
@@ -26,6 +28,7 @@ For each event below the backend:
 | Booking status REACHED | MAHIR | BOOKING_STATUS_REACHED | bookingId | ✅ |
 | Booking status IN_PROGRESS | MAHIR | BOOKING_STATUS_IN_PROGRESS | bookingId | ✅ |
 | Booking status COMPLETED | MAHIR | BOOKING_COMPLETED | bookingId | ✅ |
+| Job completed (customer) | USER (job poster) | JOB_COMPLETED | bookingId | ✅ |
 | Booking cancelled | Other party (USER or MAHIR) | BOOKING_CANCELLED | bookingId | ✅ |
 
 ---
