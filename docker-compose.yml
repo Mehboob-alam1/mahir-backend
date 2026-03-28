@@ -1,0 +1,17 @@
+# Postgres for local / VPS. API runs separately: docker build + docker run (see docs/VPS_DEPLOY_FIND_MAHIR.md)
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mahir-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mahir
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: mahir_db
+    volumes:
+      - mahir_pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+volumes:
+  mahir_pgdata:
