@@ -47,9 +47,17 @@ public class RailwayDataSourceConfig {
             if (query != null && !query.isEmpty()) {
                 jdbcUrl += "?" + query;
             } else {
-                // Internal host (e.g. postgres.railway.internal) often works without strict SSL
-                boolean internal = host != null && host.contains("internal");
-                jdbcUrl += "?" + (internal ? "sslmode=allow" : "sslmode=require");
+                // Docker / local Postgres has no SSL; cloud (Railway, Render) needs SSL
+                boolean localDocker = host != null && (host.equals("postgres") || host.equals("localhost")
+                        || host.startsWith("127."));
+                boolean railwayInternal = host != null && host.contains("internal");
+                if (localDocker) {
+                    jdbcUrl += "?sslmode=disable";
+                } else if (railwayInternal) {
+                    jdbcUrl += "?sslmode=allow";
+                } else {
+                    jdbcUrl += "?sslmode=require";
+                }
             }
 
             HikariConfig config = new HikariConfig();
