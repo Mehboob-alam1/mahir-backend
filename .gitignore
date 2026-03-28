@@ -31,6 +31,10 @@ hs_err_pid*
 application-local.properties
 application-local.yml
 
+# VM / production secrets (never commit)
+.env.production
+.env.postgres
+
 # Firebase (do not commit – use APP_FIREBASE_SERVICE_ACCOUNT_JSON on Railway)
 firebase-service-account.json
 src/main/resources/firebase-service-account.json

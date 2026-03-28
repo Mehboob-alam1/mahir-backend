@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth (USER, MAHIR, ADMIN), Jobs (with bidCount), WhatsApp contact (1 credit), Bids (message required; proposedPrice optional), Bookings (REACHED → IN_PROGRESS → COMPLETED), Chat (threadId), Notifications (referenceId), Users, Mahirs, Reviews.\n\n**baseUrl:** Railway default. Local: http://localhost:8080.\n\n**Setup:** Sign In or Sign Up; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId.",
+    "description": "Find Mahir API: Auth (USER, MAHIR, ADMIN), Jobs (with bidCount), WhatsApp contact (1 credit), Bids (message required; proposedPrice optional), Bookings (REACHED → IN_PROGRESS → COMPLETED), Chat (threadId), Notifications (referenceId), Users, Mahirs, Reviews.\n\n**baseUrl:** Collection variable (current: VPS). Change to Railway, local http://localhost:8080, or your server as needed.\n\n**Setup:** Sign In or Sign Up; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "https://mahir-backend-production.up.railway.app" },
+    { "key": "baseUrl", "value": "http://164.90.172.46:8080" },
     { "key": "accessToken", "value": "" },
     { "key": "refreshToken", "value": "" },
     { "key": "userId", "value": "" },
