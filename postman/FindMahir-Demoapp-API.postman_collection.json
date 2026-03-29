@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth (USER, MAHIR, ADMIN), Jobs (with bidCount), WhatsApp contact (1 credit), Bids (message required; proposedPrice optional), Bookings (REACHED → IN_PROGRESS → COMPLETED), Chat (threadId), Notifications (referenceId), Users, Mahirs, Reviews.\n\n**baseUrl:** Collection variable (current: VPS). Change to Railway, local http://localhost:8080, or your server as needed.\n\n**Setup:** Sign In or Sign Up; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId.",
+    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans.\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* (users, block, jobs, reviews moderation, support chats, FAQs CRUD, membership plans, assign membership).\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId, reviewId, planId, faqId. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,7 +15,10 @@
     { "key": "bookingId", "value": "" },
     { "key": "threadId", "value": "" },
     { "key": "notificationId", "value": "" },
-    { "key": "resetToken", "value": "" }
+    { "key": "resetToken", "value": "" },
+    { "key": "reviewId", "value": "" },
+    { "key": "planId", "value": "" },
+    { "key": "faqId", "value": "" }
   ],
   "item": [
     {
@@ -99,7 +102,34 @@
               "raw": "{\n  \"role\": \"ADMIN\",\n  \"fullName\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"secret123\",\n  \"phoneNumber\": \"+923000000000\",\n  \"dateOfBirth\": \"1990-01-01\",\n  \"location\": {\n    \"streetAddress\": \"Admin Office\",\n    \"latitude\": 24.8,\n    \"longitude\": 67.05\n  },\n  \"accountType\": \"FREEMIUM\"\n}"
             },
             "url": "{{baseUrl}}/auth/signup",
-            "description": "Register as ADMIN. Can authenticate like USER/MAHIR. No service categories or credits."
+            "description": "BLOCKED by API: public signup as ADMIN returns error. Create ADMIN in DB or use sample-data seed user admin.portal@findmahir.app. Kept for documentation only."
+          }
+        },
+        {
+          "name": "Sign In (seed ADMIN)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                "  if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                "  if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin.portal@findmahir.app\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signin",
+            "description": "Login as seed Platform Admin (only if sample data ran: APP_SAMPLE_DATA or H2). JWT must include role ADMIN for /api/admin/*. Change password in production."
           }
         },
         {
@@ -126,7 +156,7 @@
               "raw": "{\n  \"email\": \"ali@example.com\",\n  \"password\": \"secret123\"\n}"
             },
             "url": "{{baseUrl}}/auth/signin",
-            "description": "Login (same for USER, MAHIR and ADMIN). Saves tokens to collection variables."
+            "description": "Login for USER or MAHIR (and ADMIN if created in DB). Token includes **role** — required for admin routes. Saves tokens to collection variables."
           }
         },
         {
@@ -379,6 +409,27 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/categories",
             "description": "List service categories for MAHIR signup. No auth required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Get FAQs (active)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faqs",
+            "description": "Active FAQs for Help/FAQ screen. No auth."
+          }
+        },
+        {
+          "name": "Get Membership Plans (active)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/membership-plans",
+            "description": "Active plans for pricing/subscribe UI. Filter client-side by audience (USER, MAHIR, BOTH). No auth."
           }
         }
       ]
@@ -742,6 +793,290 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/mahirs/{{mahirId}}/reviews?page=0&size=20",
             "description": "List reviews for a Mahir. No auth required. Paginated."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Requires Bearer {{accessToken}} from an ADMIN user. Use Auth > Sign In (seed ADMIN) after sample data, or your own admin account.",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/users?page=0&size=20",
+            "description": "Paged users. Optional: &role=USER|MAHIR|ADMIN, &blocked=true|false"
+          }
+        },
+        {
+          "name": "Get User Detail",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}",
+            "description": "Profile + blocked flags, job/review counts, membership history. Set userId."
+          }
+        },
+        {
+          "name": "Block / Unblock User",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"blocked\": true,\n  \"reason\": \"Terms violation\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/block",
+            "description": "Set blocked true/false. Cannot block ADMIN accounts."
+          }
+        },
+        {
+          "name": "List All Jobs",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/jobs?page=0&size=20",
+            "description": "All jobs (newest first), includes poster and bidCount."
+          }
+        },
+        {
+          "name": "List All Reviews",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.content && json.content.length > 0 && json.content[0].id) pm.collectionVariables.set('reviewId', json.content[0].id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/reviews?page=0&size=20",
+            "description": "All reviews including hiddenFromPublic. Saves first reviewId to variable."
+          }
+        },
+        {
+          "name": "Set Review Visibility (moderation)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hiddenFromPublic\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/reviews/{{reviewId}}/visibility",
+            "description": "Hide/show review on public Mahir profile. Set reviewId (e.g. from List All Reviews)."
+          }
+        },
+        {
+          "name": "List Support Chat Threads",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.content && json.content.length > 0 && json.content[0].threadId) pm.collectionVariables.set('threadId', json.content[0].threadId);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/support/chats?page=0&size=20",
+            "description": "Customer support: all booking chat threads. Saves first threadId to collection (overwrites booking chat threadId)."
+          }
+        },
+        {
+          "name": "Get Support Chat Messages",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/support/chats/{{threadId}}/messages?page=0&size=50",
+            "description": "Read-only messages for a thread. Use threadId from List Support Chat Threads."
+          }
+        },
+        {
+          "name": "List FAQs (admin - all)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (Array.isArray(json) && json.length > 0 && json[0].id) pm.collectionVariables.set('faqId', json[0].id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/faqs",
+            "description": "All FAQs including inactive. Sets faqId from first item if array returned."
+          }
+        },
+        {
+          "name": "Create FAQ",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  if (json.id) pm.collectionVariables.set('faqId', json.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How do I post a job?\",\n  \"answer\": \"Open the app, go to Jobs, and tap Post.\",\n  \"sortOrder\": 0,\n  \"active\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/faqs",
+            "description": "Creates FAQ; saves faqId."
+          }
+        },
+        {
+          "name": "Update FAQ",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Updated question\",\n  \"answer\": \"Updated answer\",\n  \"sortOrder\": 1,\n  \"active\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/faqs/{{faqId}}",
+            "description": "Partial update. Set faqId."
+          }
+        },
+        {
+          "name": "Delete FAQ",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/faqs/{{faqId}}",
+            "description": "Hard delete FAQ."
+          }
+        },
+        {
+          "name": "List Membership Plans (admin)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (Array.isArray(json) && json.length > 0 && json[0].id) pm.collectionVariables.set('planId', json[0].id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/membership-plans",
+            "description": "All plans including inactive. Sets planId from first plan."
+          }
+        },
+        {
+          "name": "Create Membership Plan",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  if (json.id) pm.collectionVariables.set('planId', json.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mahir Pro\",\n  \"code\": \"MAHIR_PRO\",\n  \"description\": \"Featured listing and extra credits\",\n  \"audience\": \"MAHIR\",\n  \"priceMonthly\": 29.99,\n  \"currency\": \"TND\",\n  \"featuresText\": \"Featured profile; 10 credits/month\",\n  \"active\": true,\n  \"sortOrder\": 0\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/membership-plans",
+            "description": "audience: USER | MAHIR | BOTH. Saves planId."
+          }
+        },
+        {
+          "name": "Update Membership Plan",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mahir Pro Plus\",\n  \"priceMonthly\": 39.99,\n  \"active\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/membership-plans/{{planId}}",
+            "description": "Partial update. Set planId."
+          }
+        },
+        {
+          "name": "Deactivate Membership Plan",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/membership-plans/{{planId}}",
+            "description": "Soft delete: sets active=false."
+          }
+        },
+        {
+          "name": "List All User Memberships",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/memberships?page=0&size=20",
+            "description": "Paged membership rows (user, plan, status, dates)."
+          }
+        },
+        {
+          "name": "Assign Membership to User",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": {{planId}},\n  \"expiresAt\": null\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/membership",
+            "description": "Cancels previous ACTIVE membership for this user. planId must match user role vs plan audience. expiresAt optional ISO instant."
+          }
+        },
+        {
+          "name": "Cancel Active Membership",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/membership",
+            "description": "Cancels current ACTIVE membership for userId."
           }
         }
       ]
