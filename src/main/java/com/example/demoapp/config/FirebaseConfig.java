@@ -41,8 +41,14 @@ public class FirebaseConfig {
         String envJson = System.getenv("APP_FIREBASE_SERVICE_ACCOUNT_JSON");
         if (envJson != null && !envJson.isBlank()) {
             log.info("Firebase: APP_FIREBASE_SERVICE_ACCOUNT_JSON is set (length={})", envJson.length());
+            String t = envJson.trim();
+            if (t.startsWith("{") && !t.contains("private_key")) {
+                log.warn("Firebase: JSON env looks truncated or invalid (missing private_key). "
+                        + "Docker --env-file cannot use multiline JSON — use APP_FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 "
+                        + "or a single-line minified JSON. See docs/FIREBASE_VM_DOCKER.md");
+            }
         } else {
-            log.info("Firebase: APP_FIREBASE_SERVICE_ACCOUNT_JSON is not set or empty. Set it in Railway Variables (full JSON).");
+            log.info("Firebase: APP_FIREBASE_SERVICE_ACCOUNT_JSON not set. For VM/Docker use BASE64 or mount file — see docs/FIREBASE_VM_DOCKER.md");
         }
 
         InputStream stream = null;
