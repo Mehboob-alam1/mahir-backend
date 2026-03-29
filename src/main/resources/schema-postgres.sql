@@ -120,6 +120,50 @@ CREATE TABLE IF NOT EXISTS reviews (
     mahir_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     rating INTEGER NOT NULL,
     comment VARCHAR(2000),
+    hidden_from_public BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL,
     UNIQUE(booking_id)
+);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked_reason VARCHAR(500);
+
+-- If reviews existed before hidden_from_public, Hibernate may add column; this is safe on fresh DB:
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS hidden_from_public BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS faqs (
+    id BIGSERIAL PRIMARY KEY,
+    question VARCHAR(500) NOT NULL,
+    answer VARCHAR(4000) NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS membership_plans (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    code VARCHAR(64) NOT NULL UNIQUE,
+    description VARCHAR(2000),
+    audience VARCHAR(20) NOT NULL,
+    price_monthly DECIMAL(12,2),
+    currency VARCHAR(8),
+    features_text VARCHAR(4000),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_memberships (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    plan_id BIGINT NOT NULL REFERENCES membership_plans(id) ON DELETE RESTRICT,
+    started_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
 );

@@ -39,16 +39,24 @@ public class FirebaseConfig {
         if (FirebaseApp.getApps().isEmpty() == false) return;
 
         String envJson = System.getenv("APP_FIREBASE_SERVICE_ACCOUNT_JSON");
-        if (envJson != null && !envJson.isBlank()) {
-            log.info("Firebase: APP_FIREBASE_SERVICE_ACCOUNT_JSON is set (length={})", envJson.length());
-            String t = envJson.trim();
+        String envB64Early = System.getenv("APP_FIREBASE_SERVICE_ACCOUNT_JSON_BASE64");
+        boolean hasRawJson = (serviceAccountJson != null && !serviceAccountJson.isBlank())
+                || (envJson != null && !envJson.isBlank());
+        boolean hasB64Early = (serviceAccountJsonBase64 != null && !serviceAccountJsonBase64.isBlank())
+                || (envB64Early != null && !envB64Early.isBlank());
+        if (hasRawJson) {
+            String rawForLog = (serviceAccountJson != null && !serviceAccountJson.isBlank())
+                    ? serviceAccountJson : envJson;
+            log.info("Firebase: raw service account JSON is set (length={})", rawForLog != null ? rawForLog.length() : 0);
+            String t = rawForLog != null ? rawForLog.trim() : "";
             if (t.startsWith("{") && !t.contains("private_key")) {
                 log.warn("Firebase: JSON env looks truncated or invalid (missing private_key). "
                         + "Docker --env-file cannot use multiline JSON — use APP_FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 "
                         + "or a single-line minified JSON. See docs/FIREBASE_VM_DOCKER.md");
             }
-        } else {
-            log.info("Firebase: APP_FIREBASE_SERVICE_ACCOUNT_JSON not set. For VM/Docker use BASE64 or mount file — see docs/FIREBASE_VM_DOCKER.md");
+        } else if (!hasB64Early) {
+            log.info("Firebase: no credentials in env/properties yet. Set APP_FIREBASE_SERVICE_ACCOUNT_JSON or "
+                    + "APP_FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 (see docs/FIREBASE_VM_DOCKER.md).");
         }
 
         InputStream stream = null;

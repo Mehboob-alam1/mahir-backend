@@ -131,6 +131,9 @@ public class UserService {
     public PublicProfileResponse getPublicProfile(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        if (user.isBlocked()) {
+            throw new ResourceNotFoundException("User", id);
+        }
         Location loc = user.getLocation();
         LocationDto locDto = loc == null ? null : LocationDto.builder()
                 .streetAddress(loc.getStreetAddress())
@@ -141,7 +144,7 @@ public class UserService {
                 .map(c -> CategoryResponse.builder().id(c.getId()).name(c.getName()).description(c.getDescription()).build())
                 .collect(Collectors.toList());
         Double avgRating = user.getRole() == com.example.demoapp.entity.Role.MAHIR ? reviewRepository.getAverageRatingByMahirId(user.getId()) : null;
-        long reviewCount = user.getRole() == com.example.demoapp.entity.Role.MAHIR ? reviewRepository.countByMahir(user) : 0L;
+        long reviewCount = user.getRole() == com.example.demoapp.entity.Role.MAHIR ? reviewRepository.countPublicByMahirId(user.getId()) : 0L;
         return PublicProfileResponse.builder()
                 .id(user.getId())
                 .role(user.getRole())

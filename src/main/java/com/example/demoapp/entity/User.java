@@ -3,6 +3,7 @@ package com.example.demoapp.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -73,6 +74,17 @@ public class User {
     /** FCM token for push notifications (app sends via POST /api/users/me/fcm-token). */
     @Column(name = "fcm_token", length = 500)
     private String fcmToken;
+
+    /** When true, user cannot sign in and is hidden from public Mahir search / open job feed. */
+    @Column(name = "blocked", nullable = false)
+    @Builder.Default
+    private boolean blocked = false;
+
+    @Column(name = "blocked_at")
+    private Instant blockedAt;
+
+    @Column(name = "blocked_reason", length = 500)
+    private String blockedReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -64,7 +64,7 @@ public class ReviewService {
         if (mahir.getRole() != Role.MAHIR) {
             throw new ResourceNotFoundException("Mahir", mahirId);
         }
-        return reviewRepository.findByMahirOrderByCreatedAtDesc(mahir, pageable)
+        return reviewRepository.findByMahirAndHiddenFromPublicFalseOrderByCreatedAtDesc(mahir, pageable)
                 .map(this::toResponse);
     }
 

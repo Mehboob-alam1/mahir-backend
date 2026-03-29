@@ -16,6 +16,10 @@ import java.util.List;
 @Repository
 public interface JobRepository extends JpaRepository<Job, Long> {
 
+    Page<Job> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    long countByPostedBy(User postedBy);
+
     Page<Job> findByPostedByOrderByCreatedAtDesc(User postedBy, Pageable pageable);
 
     Page<Job> findByPostedByAndStatusOrderByCreatedAtDesc(User postedBy, JobStatus status, Pageable pageable);
@@ -26,4 +30,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     @Query("SELECT j FROM Job j WHERE j.status = :status AND (:categoryId IS NULL OR j.category.id = :categoryId) ORDER BY j.createdAt DESC")
     Page<Job> findOpenJobs(@Param("status") JobStatus status, @Param("categoryId") Long categoryId, Pageable pageable);
+
+    @Query("SELECT j FROM Job j WHERE j.status = :status AND j.postedBy.blocked = false AND (:categoryId IS NULL OR j.category.id = :categoryId) ORDER BY j.createdAt DESC")
+    Page<Job> findPublicOpenJobs(@Param("status") JobStatus status, @Param("categoryId") Long categoryId, Pageable pageable);
 }

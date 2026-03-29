@@ -11,4 +11,6 @@ import org.springframework.stereotype.Repository;
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
 
     Page<ChatMessage> findByThreadOrderByCreatedAtDesc(ChatThread thread, Pageable pageable);
+
+    Page<ChatMessage> findByThreadOrderByCreatedAtAsc(ChatThread thread, Pageable pageable);
 }

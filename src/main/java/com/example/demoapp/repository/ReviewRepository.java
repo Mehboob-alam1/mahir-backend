@@ -14,14 +14,23 @@ import java.util.Optional;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    Page<Review> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
     Page<Review> findByMahirOrderByCreatedAtDesc(User mahir, Pageable pageable);
+
+    Page<Review> findByMahirAndHiddenFromPublicFalseOrderByCreatedAtDesc(User mahir, Pageable pageable);
 
     Optional<Review> findByBookingId(Long bookingId);
 
     boolean existsByBookingId(Long bookingId);
 
-    @Query("SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.mahir.id = :mahirId")
+    @Query("SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.mahir.id = :mahirId AND r.hiddenFromPublic = false")
     Double getAverageRatingByMahirId(@Param("mahirId") Long mahirId);
 
+    @Query("SELECT COUNT(r) FROM Review r WHERE r.mahir.id = :mahirId AND r.hiddenFromPublic = false")
+    long countPublicByMahirId(@Param("mahirId") Long mahirId);
+
     long countByMahir(User mahir);
+
+    long countByReviewer(User reviewer);
 }

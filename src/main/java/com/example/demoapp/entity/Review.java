@@ -36,6 +36,11 @@ public class Review {
     @Column(length = 2000)
     private String comment;
 
+    /** When true, review is hidden from public Mahir profile and rating averages. */
+    @Column(name = "hidden_from_public", nullable = false)
+    @Builder.Default
+    private boolean hiddenFromPublic = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

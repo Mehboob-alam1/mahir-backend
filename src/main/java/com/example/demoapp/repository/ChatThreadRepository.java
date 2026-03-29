@@ -3,6 +3,8 @@ package com.example.demoapp.repository;
 import com.example.demoapp.entity.Booking;
 import com.example.demoapp.entity.ChatThread;
 import com.example.demoapp.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,8 @@ import java.util.Optional;
 
 @Repository
 public interface ChatThreadRepository extends JpaRepository<ChatThread, Long> {
+
+    Page<ChatThread> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     Optional<ChatThread> findByBookingId(Long bookingId);
 

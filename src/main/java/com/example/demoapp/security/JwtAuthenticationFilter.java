@@ -13,8 +13,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.example.demoapp.entity.Role;
+
 import java.io.IOException;
-import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor
@@ -38,11 +39,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 var claims = jwtService.parseToken(token);
                 String email = claims.getSubject();
                 Long userId = claims.get("userId", Long.class);
-                var principal = new UserPrincipal(userId, email);
+                String roleStr = claims.get("role", String.class);
+                Role role = Role.USER;
+                if (roleStr != null) {
+                    try {
+                        role = Role.valueOf(roleStr);
+                    } catch (IllegalArgumentException ignored) {
+                        // keep USER
+                    }
+                }
+                var principal = UserPrincipal.create(userId, email, role);
                 var auth = new UsernamePasswordAuthenticationToken(
                         principal,
                         null,
-                        Collections.emptyList()
+                        principal.getAuthorities()
                 );
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);

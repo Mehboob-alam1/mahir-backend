@@ -47,6 +47,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponse signUp(SignUpRequest request) {
+        if (request.getRole() == Role.ADMIN) {
+            throw new UnauthorizedException("Cannot register as ADMIN via public API");
+        }
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already registered: " + request.getEmail());
         }
@@ -83,8 +86,8 @@ public class AuthService {
 
         user = userRepository.save(user);
 
-        String accessToken = jwtService.generateAccessToken(user.getEmail(), user.getId());
-        String refreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getId());
+        String accessToken = jwtService.generateAccessToken(user.getEmail(), user.getId(), user.getRole());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getId(), user.getRole());
         UserResponse userResponse = mapToUserResponse(user);
         return AuthResponse.builder()
                 .success(true)
@@ -102,8 +105,11 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Invalid email or password");
         }
-        String accessToken = jwtService.generateAccessToken(user.getEmail(), user.getId());
-        String refreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getId());
+        if (user.isBlocked()) {
+            throw new UnauthorizedException("This account has been suspended");
+        }
+        String accessToken = jwtService.generateAccessToken(user.getEmail(), user.getId(), user.getRole());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getId(), user.getRole());
         UserResponse userResponse = mapToUserResponse(user);
         return AuthResponse.builder()
                 .success(true)
@@ -126,8 +132,11 @@ public class AuthService {
         String email = claims.getSubject();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
-        String newAccessToken = jwtService.generateAccessToken(user.getEmail(), user.getId());
-        String newRefreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getId());
+        if (user.isBlocked()) {
+            throw new UnauthorizedException("This account has been suspended");
+        }
+        String newAccessToken = jwtService.generateAccessToken(user.getEmail(), user.getId(), user.getRole());
+        String newRefreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getId(), user.getRole());
         return AuthResponse.builder()
                 .success(true)
                 .message("Token refreshed")

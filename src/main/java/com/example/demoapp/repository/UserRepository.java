@@ -20,6 +20,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Page<User> findByRole(Role role, Pageable pageable);
 
+    Page<User> findByRoleAndBlocked(Role role, boolean blocked, Pageable pageable);
+
     @Query("SELECT DISTINCT u FROM User u JOIN u.serviceCategories c WHERE u.role = :role AND c.id = :categoryId")
     Page<User> findByRoleAndServiceCategoriesId(@Param("role") Role role, @Param("categoryId") Long categoryId, Pageable pageable);
+
+    @Query("SELECT DISTINCT u FROM User u JOIN u.serviceCategories c WHERE u.role = :role AND u.blocked = false AND c.id = :categoryId")
+    Page<User> findActiveMahirsByCategory(@Param("role") Role role, @Param("categoryId") Long categoryId, Pageable pageable);
+
+    Page<User> findByRoleAndBlockedFalse(Role role, Pageable pageable);
+
+    Page<User> findByBlockedTrue(Pageable pageable);
+
+    Page<User> findByBlockedFalse(Pageable pageable);
 }

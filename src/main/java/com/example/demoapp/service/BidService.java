@@ -37,6 +37,9 @@ public class BidService {
         if (mahir.getRole() != Role.MAHIR) {
             throw new UnauthorizedException("Only Mahirs can place bids");
         }
+        if (mahir.isBlocked()) {
+            throw new UnauthorizedException("Your account is suspended");
+        }
         if (bidRepository.existsByJobIdAndMahirId(jobId, mahirId)) {
             throw new UnauthorizedException("You have already bid on this job");
         }
@@ -134,7 +137,7 @@ public class BidService {
 
     private BidResponse toBidResponse(Bid b) {
         Double rating = reviewRepository.getAverageRatingByMahirId(b.getMahir().getId());
-        long reviewCount = reviewRepository.countByMahir(b.getMahir());
+        long reviewCount = reviewRepository.countPublicByMahirId(b.getMahir().getId());
         return BidResponse.builder()
                 .id(b.getId())
                 .jobId(b.getJob().getId())

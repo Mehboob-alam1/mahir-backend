@@ -24,8 +24,8 @@ public class MahirSearchService {
 
     public Page<MahirResponse> searchMahirs(Long categoryId, Pageable pageable) {
         Page<User> mahirs = categoryId != null
-                ? userRepository.findByRoleAndServiceCategoriesId(Role.MAHIR, categoryId, pageable)
-                : userRepository.findByRole(Role.MAHIR, pageable);
+                ? userRepository.findActiveMahirsByCategory(Role.MAHIR, categoryId, pageable)
+                : userRepository.findByRoleAndBlockedFalse(Role.MAHIR, pageable);
         return mahirs.map(this::toMahirResponse);
     }
 
@@ -35,12 +35,15 @@ public class MahirSearchService {
         if (mahir.getRole() != Role.MAHIR) {
             throw new com.example.demoapp.exception.ResourceNotFoundException("Mahir", id);
         }
+        if (mahir.isBlocked()) {
+            throw new com.example.demoapp.exception.ResourceNotFoundException("Mahir", id);
+        }
         return toMahirResponse(mahir);
     }
 
     private MahirResponse toMahirResponse(User user) {
         Double avgRating = reviewRepository.getAverageRatingByMahirId(user.getId());
-        long reviewCount = reviewRepository.countByMahir(user);
+        long reviewCount = reviewRepository.countPublicByMahirId(user.getId());
         LocationDto locDto = user.getLocation() == null ? null : LocationDto.builder()
                 .streetAddress(user.getLocation().getStreetAddress())
                 .latitude(user.getLocation().getLatitude())

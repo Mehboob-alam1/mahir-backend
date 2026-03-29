@@ -1,0 +1,169 @@
+================================================================================
+FIND MAHIR BACKEND – ADMIN & RELATED API SUMMARY (for mobile / web app teams)
+================================================================================
+
+This file describes what was added so you can wire the client app (prompts, UI,
+navigation, role checks).
+
+--------------------------------------------------------------------------------
+1) AUTH / JWT – ROLE IN TOKEN (BREAKING FOR OLD TOKENS)
+--------------------------------------------------------------------------------
+- Access and refresh JWTs now include a claim: "role" = USER | MAHIR | ADMIN
+- Spring Security grants Spring authorities: ROLE_USER, ROLE_MAHIR, ROLE_ADMIN
+- If "role" is missing (very old token), the API treats the user as USER
+- After deploy, users should log in again so tokens include the correct role
+
+Admin login: same /auth/sign-in as other users, with an account that has
+role = ADMIN in the database.
+
+Sample-data mode (H2 or APP_SAMPLE_DATA on empty DB) creates:
+  Email: admin.portal@findmahir.app
+  Password: Password123! (same as other seed users)
+(Change in production.)
+
+Public sign-up rejects role ADMIN (403-style behavior: UnauthorizedException
+message "Cannot register as ADMIN via public API"). Create admins via DB or seed.
+
+Blocked users:
+- Cannot sign in or refresh token ("This account has been suspended")
+- Hidden from public Mahir search and public user profile
+- Their OPEN jobs do not appear in the public open-job feed
+- Mahirs who are blocked cannot place bids
+
+--------------------------------------------------------------------------------
+2) USER MODEL – BLOCKING
+--------------------------------------------------------------------------------
+New fields on users (DB columns):
+- blocked (boolean, default false)
+- blocked_at (timestamp, optional)
+- blocked_reason (string, optional)
+
+Admin cannot block another ADMIN (API error).
+
+--------------------------------------------------------------------------------
+3) REVIEW MODEL – MODERATION
+--------------------------------------------------------------------------------
+New field on reviews:
+- hidden_from_public (boolean, default false)
+
+When true:
+- Review is omitted from GET /api/mahirs/{id}/reviews (public list)
+- Excluded from average rating and public review counts used in Mahir cards,
+  bids, and public profiles
+
+Admin still sees all reviews in admin list and can toggle visibility.
+
+--------------------------------------------------------------------------------
+4) NEW ENTITIES / TABLES
+--------------------------------------------------------------------------------
+FAQs (faqs)
+- question, answer, sort_order, active, created_at, updated_at
+
+Membership plans (membership_plans)
+- name, code (unique), description, audience (USER | MAHIR | BOTH),
+  price_monthly, currency (default TND), features_text, active, sort_order,
+  timestamps
+
+User memberships (user_memberships)
+- user_id, plan_id, started_at, expires_at (optional), status (ACTIVE | CANCELLED | EXPIRED)
+
+--------------------------------------------------------------------------------
+5) PUBLIC ENDPOINTS (no auth)
+--------------------------------------------------------------------------------
+GET  /api/faqs
+     → List of active FAQs, ordered by sort_order (only active items; no "active" flag needed in UI)
+
+GET  /api/membership-plans
+     → List of active membership plans (for pricing / subscribe screens)
+     → Filter client-side by "audience" if you show different plans for customers vs Mahirs
+
+--------------------------------------------------------------------------------
+6) ADMIN API – ALL UNDER /api/admin
+--------------------------------------------------------------------------------
+Requires: Authorization: Bearer <access_token> where token role is ADMIN
+(403 if not admin)
+
+USERS
+GET    /api/admin/users?role=USER|MAHIR|ADMIN&blocked=true|false
+       → Paged list; omit query params for all users
+GET    /api/admin/users/{id}
+       → Full profile (UserResponse + blocked/blockedReason) plus:
+         jobsPostedCount, reviewsReceivedAsMahirCount, reviewsWrittenAsCustomerCount,
+         list of membership rows (history + current)
+PATCH  /api/admin/users/{id}/block
+       Body JSON: { "blocked": true|false, "reason": "optional string" }
+
+JOBS
+GET    /api/admin/jobs
+       → All jobs, paged (newest first), includes poster name/email, bidCount, etc.
+
+REVIEWS
+GET    /api/admin/reviews
+       → All reviews, paged; includes mahirName, hiddenFromPublic
+PATCH  /api/admin/reviews/{id}/visibility
+       Body JSON: { "hiddenFromPublic": true|false }
+
+CUSTOMER SUPPORT – READ CHATS
+GET    /api/admin/support/chats
+       → Paged threads: booking id, job id/title, customer & Mahir ids/names/emails
+GET    /api/admin/support/chats/{threadId}/messages
+       → Paged messages (oldest-first default), read-only for support
+
+FAQs (manage)
+GET    /api/admin/faqs
+       → All FAQs including inactive (for CMS-style UI)
+POST   /api/admin/faqs
+       Body: FaqRequest { question, answer, sortOrder?, active? }
+PATCH  /api/admin/faqs/{id}
+DELETE /api/admin/faqs/{id}
+
+MEMBERSHIP PLANS (manage)
+GET    /api/admin/membership-plans
+       → All plans (including inactive)
+POST   /api/admin/membership-plans
+PATCH  /api/admin/membership-plans/{id}
+DELETE /api/admin/membership-plans/{id}
+       → Soft delete: sets active = false
+
+MEMBERSHIPS (assign / list)
+GET    /api/admin/memberships
+       → Paged rows: user email, plan name/code, status, dates
+POST   /api/admin/users/{userId}/membership
+       Body: { "planId": long, "expiresAt": ISO-8601 instant optional }
+       → Cancels previous ACTIVE membership for that user, then creates new ACTIVE
+DELETE /api/admin/users/{userId}/membership
+       → Cancels current ACTIVE membership (no body)
+
+Plan audience is enforced: USER-only plans cannot be assigned to MAHIR and vice
+versa; BOTH accepts any non-ADMIN user.
+
+--------------------------------------------------------------------------------
+7) CLIENT APP CHECKLIST
+--------------------------------------------------------------------------------
+- After login, read user.role from your session / JWT payload if you decode it,
+  or from GET /auth/session or user object in login response – ensure ADMIN
+  users get an “Admin” area or web dashboard entry.
+- Store access token; attach Bearer token to all /api/admin/* calls.
+- Public app: use GET /api/faqs for help screen; GET /api/membership-plans for
+  pricing (respect `audience`).
+- Optional: show current user’s membership by extending the API later
+  (e.g. GET /api/users/me/membership) – not added yet; admin list shows all.
+
+--------------------------------------------------------------------------------
+8) FILES TOUCHED (high level)
+--------------------------------------------------------------------------------
+- Entity: User (blocked*), Review (hiddenFromPublic), new: Faq, MembershipPlan,
+  UserMembership; enums PlanAudience, UserMembershipStatus
+- Repositories + queries for public Mahir/job/review filtering
+- JwtService / JwtAuthenticationFilter / UserPrincipal – role in JWT
+- AuthService – block check, no ADMIN sign-up, tokens include role
+- SecurityConfig – /api/admin/** → hasRole("ADMIN"); public FAQ & GET plans
+- AdminService, AdminController, PublicFaqController, PublicMembershipController
+- DTOs: Admin*, Faq*, MembershipPlan*, AssignMembershipRequest
+- schema-postgres.sql – tables/columns for Railway init
+- SampleDataLoader – seed admin user when sample data is enabled
+- GlobalExceptionHandler – AccessDenied → 403
+
+================================================================================
+END
+================================================================================

@@ -1,5 +1,6 @@
 package com.example.demoapp.security;
 
+import com.example.demoapp.entity.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -27,10 +28,12 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(String email, Long userId) {
+    public String generateAccessToken(String email, Long userId, Role role) {
+        Role r = role != null ? role : Role.USER;
         return Jwts.builder()
                 .subject(email)
                 .claim("userId", userId)
+                .claim("role", r.name())
                 .claim("type", "access")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + accessExpirationMs))
@@ -38,10 +41,12 @@ public class JwtService {
                 .compact();
     }
 
-    public String generateRefreshToken(String email, Long userId) {
+    public String generateRefreshToken(String email, Long userId, Role role) {
+        Role r = role != null ? role : Role.USER;
         return Jwts.builder()
                 .subject(email)
                 .claim("userId", userId)
+                .claim("role", r.name())
                 .claim("type", "refresh")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + refreshExpirationMs))

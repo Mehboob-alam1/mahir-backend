@@ -2,6 +2,7 @@ package com.example.demoapp.dto;
 
 import com.example.demoapp.entity.AccountType;
 import com.example.demoapp.entity.Role;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserResponse {
 
     private Long id;
@@ -31,6 +33,10 @@ public class UserResponse {
     /** For MAHIR: credits for WhatsApp contact (1 per job). */
     private Integer credits;
     private LocalDateTime createdAt;
+
+    /** Populated by admin APIs only. */
+    private Boolean blocked;
+    private String blockedReason;
 
     @Getter
     @Setter

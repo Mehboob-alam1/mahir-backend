@@ -31,6 +31,9 @@ public class JobService {
         if (poster.getRole() != Role.USER) {
             throw new UnauthorizedException("Only customers (USER) can post jobs");
         }
+        if (poster.isBlocked()) {
+            throw new UnauthorizedException("Your account is suspended");
+        }
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId()));
         Location loc = null;
@@ -55,7 +58,7 @@ public class JobService {
                 .build();
         job = jobRepository.save(job);
         // Notify Mahirs in this category about the new job (limit 100 to avoid spam)
-        org.springframework.data.domain.Page<User> mahirsInCategory = userRepository.findByRoleAndServiceCategoriesId(
+        org.springframework.data.domain.Page<User> mahirsInCategory = userRepository.findActiveMahirsByCategory(
                 Role.MAHIR, job.getCategory().getId(), Pageable.ofSize(100));
         String title = "New job";
         String body = "A new job in " + job.getCategory().getName() + ": " + job.getTitle();
@@ -76,9 +79,7 @@ public class JobService {
     }
 
     public Page<JobResponse> listOpenJobs(Long categoryId, Pageable pageable) {
-        Page<Job> page = categoryId != null
-                ? jobRepository.findByStatusAndCategoryIdOrderByCreatedAtDesc(JobStatus.OPEN, categoryId, pageable)
-                : jobRepository.findByStatusOrderByCreatedAtDesc(JobStatus.OPEN, pageable);
+        Page<Job> page = jobRepository.findPublicOpenJobs(JobStatus.OPEN, categoryId, pageable);
         return page.map(this::toResponse);
     }
 
