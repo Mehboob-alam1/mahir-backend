@@ -2,6 +2,7 @@ package com.example.demoapp.service;
 
 import com.example.demoapp.dto.*;
 import com.example.demoapp.entity.*;
+import com.example.demoapp.exception.BadRequestException;
 import com.example.demoapp.exception.DuplicateResourceException;
 import com.example.demoapp.exception.ResourceNotFoundException;
 import com.example.demoapp.exception.UnauthorizedException;
@@ -56,6 +57,9 @@ public class AuthService {
 
         Location location = null;
         if (request.getLocation() != null) {
+            if (request.getLocation().getLatitude() == null || request.getLocation().getLongitude() == null) {
+                throw new BadRequestException("Location must include latitude and longitude for registration");
+            }
             location = Location.builder()
                     .streetAddress(request.getLocation().getStreetAddress())
                     .latitude(request.getLocation().getLatitude())

@@ -1,6 +1,7 @@
 package com.example.demoapp.dto;
 
-import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
@@ -10,11 +11,13 @@ import lombok.*;
 @Builder
 public class LocationDto {
 
+    @JsonProperty("streetAddress")
+    @JsonAlias("street_address")
     private String streetAddress;
 
-    @NotNull(message = "Latitude is required")
+    @JsonProperty("latitude")
     private Double latitude;
 
-    @NotNull(message = "Longitude is required")
+    @JsonProperty("longitude")
     private Double longitude;
 }

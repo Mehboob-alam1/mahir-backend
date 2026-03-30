@@ -1,0 +1,86 @@
+================================================================================
+PROMPT FOR MOBILE APP TEAM — Find Mahir backend integration
+================================================================================
+Copy everything below this line into your chat / ticket for the app developers.
+
+---
+
+You are building the Find Mahir mobile app against our Spring Boot REST API.
+
+BASE URL
+--------
+Use the environment-specific base URL (e.g. https://api.example.com or http://IP:8080).
+All API paths below are relative to that base (e.g. POST {baseUrl}/auth/signin).
+
+AUTHENTICATION
+--------------
+- Register: POST /auth/signup (roles USER = customer, MAHIR = professional). ADMIN cannot be created via signup.
+- Login: POST /auth/signin — body { "email", "password" }. Response includes accessToken, refreshToken, user object.
+- Send header on protected routes: Authorization: Bearer <accessToken>
+- Refresh: POST /auth/refresh with refreshToken in body.
+- IMPORTANT: JWT access tokens include a "role" claim (USER | MAHIR | ADMIN). After our last backend upgrade, users should log in again once so tokens stay valid for role-based features (especially admin).
+
+MAHIR MAP & PUBLIC PROFILE (customer flow)
+------------------------------------------
+- List Mahirs: GET /api/mahirs?page=0&size=20 optional &categoryId=
+- Mahir detail (e.g. after marker tap, refresh): GET /api/mahirs/{id}
+
+Response shape (camelCase) includes:
+  id, fullName, email, phoneNumber, accountType (FREEMIUM | PREMIUM — not "INDIVIDUAL"; map labels in UI),
+  customServiceName, averageRating, reviewCount, role (always "MAHIR"),
+  serviceCategories: [{ id, name, description }],
+  location: { streetAddress, latitude, longitude } — may be null; lat/lng may be null if only text address (geocode client-side if needed).
+
+Optional: backend may omit email/phone for anonymous users if server sets APP_MAHIR_PROFILE_EXPOSE_PII_WITHOUT_AUTH=false; default is they are included without login.
+
+Reviews for profile: GET /api/mahirs/{id}/reviews?page=0&size=20 (public, no auth).
+
+JOBS, BIDS, BOOKINGS, CHAT (existing product flows)
+----------------------------------------------------
+- Categories (no auth): GET /api/categories
+- Customer posts job: POST /api/jobs (USER, Bearer) — location must include latitude & longitude for map.
+- Open jobs feed: GET /api/jobs?page=0&size=20 (MAHIR; optional categoryId in query per your API spec)
+- Bids, accept/reject, bookings, chat threads/messages — use existing Postman collection / OpenAPI as source of truth.
+
+PUBLIC CONTENT (no auth)
+------------------------
+- FAQs: GET /api/faqs
+- Membership plans (pricing UI): GET /api/membership-plans — filter by audience field: USER | MAHIR | BOTH
+
+ADMIN APP / ADMIN PANEL (only if you build it)
+----------------------------------------------
+- Requires user with role ADMIN in database; login via same /auth/signin.
+- All admin routes: /api/admin/... with Bearer token (must be ADMIN).
+- Capabilities: list users/Mahirs, block users, list jobs & reviews, hide reviews from public, read support chats, manage FAQs and membership plans, assign memberships.
+- Full list: see repo file ADMIN_BACKEND_SUMMARY.txt
+
+BLOCKED USERS
+-------------
+- Blocked accounts cannot login; hidden from Mahir search and public job feed; blocked Mahirs cannot bid. Handle 401 / error messages accordingly.
+
+SAMPLE / DEMO DATA (dev only)
+-----------------------------
+If backend has sample data enabled (e.g. H2 or APP_SAMPLE_DATA on empty DB):
+- Example customer: nadia.mansour@gmail.com / Password123!
+- Example admin: admin.portal@findmahir.app / Password123!
+Do not ship these credentials in production builds.
+
+DELIVERABLES ON YOUR SIDE
+-------------------------
+1. Store access + refresh tokens securely; attach Bearer to protected calls.
+2. Mahir map: use GET /api/mahirs/{id} after marker tap to refresh; show location from location.latitude/longitude or geocode streetAddress.
+3. Map accountType FREEMIUM/PREMIUM to your UI labels.
+4. FAQ screen: GET /api/faqs.
+5. Plans / pricing: GET /api/membership-plans + audience filter.
+6. After backend deploy: prompt user to re-login once (new JWT role claim).
+7. If you build admin: separate navigation + all /api/admin/* calls from ADMIN_BACKEND_SUMMARY.txt.
+
+REFERENCE FILES IN REPO (for engineers)
+---------------------------------------
+- postman/FindMahir-Demoapp-API.postman_collection.json — requests & examples
+- ADMIN_BACKEND_SUMMARY.txt — admin API
+- docs/MAHIR_PUBLIC_PROFILE.md — Mahir JSON contract & PII notes
+
+================================================================================
+END OF PROMPT
+================================================================================

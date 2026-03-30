@@ -6,6 +6,7 @@ import com.example.demoapp.dto.JobUpdateRequest;
 import com.example.demoapp.dto.LocationDto;
 import com.example.demoapp.dto.WhatsAppContactResponse;
 import com.example.demoapp.entity.*;
+import com.example.demoapp.exception.BadRequestException;
 import com.example.demoapp.exception.ResourceNotFoundException;
 import com.example.demoapp.exception.UnauthorizedException;
 import com.example.demoapp.repository.*;
@@ -38,6 +39,9 @@ public class JobService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId()));
         Location loc = null;
         if (request.getLocation() != null) {
+            if (request.getLocation().getLatitude() == null || request.getLocation().getLongitude() == null) {
+                throw new BadRequestException("Job location must include latitude and longitude");
+            }
             loc = Location.builder()
                     .streetAddress(request.getLocation().getStreetAddress())
                     .latitude(request.getLocation().getLatitude())
@@ -103,6 +107,9 @@ public class JobService {
         if (request.getTitle() != null) job.setTitle(request.getTitle());
         if (request.getDescription() != null) job.setDescription(request.getDescription());
         if (request.getLocation() != null) {
+            if (request.getLocation().getLatitude() == null || request.getLocation().getLongitude() == null) {
+                throw new BadRequestException("Job location must include latitude and longitude");
+            }
             job.setLocation(Location.builder()
                     .streetAddress(request.getLocation().getStreetAddress())
                     .latitude(request.getLocation().getLatitude())
