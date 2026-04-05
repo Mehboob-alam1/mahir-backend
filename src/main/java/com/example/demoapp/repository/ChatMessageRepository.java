@@ -10,6 +10,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
 
+    long countByCreatedAtAfter(java.time.Instant since);
+
+    long countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(java.time.Instant start, java.time.Instant endExclusive);
+
     Page<ChatMessage> findByThreadOrderByCreatedAtDesc(ChatThread thread, Pageable pageable);
 
     Page<ChatMessage> findByThreadOrderByCreatedAtAsc(ChatThread thread, Pageable pageable);

@@ -19,6 +19,8 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
     @Query("SELECT COUNT(b) FROM Bid b WHERE b.job.id = :jobId")
     long countByJobId(@Param("jobId") Long jobId);
 
+    long countByMahir(User mahir);
+
     Page<Bid> findByJobOrderByCreatedAtDesc(Job job, Pageable pageable);
 
     Page<Bid> findByJobAndStatusOrderByCreatedAtDesc(Job job, BidStatus status, Pageable pageable);

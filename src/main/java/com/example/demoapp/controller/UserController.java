@@ -1,10 +1,14 @@
 package com.example.demoapp.controller;
 
 import com.example.demoapp.dto.FcmTokenRequest;
+import com.example.demoapp.dto.MembershipSubscribeRequest;
+import com.example.demoapp.dto.MyMembershipResponse;
+import com.example.demoapp.dto.AdminMembershipRowResponse;
 import com.example.demoapp.dto.UpdateProfileRequest;
 import com.example.demoapp.dto.UserRequest;
 import com.example.demoapp.dto.UserResponse;
 import com.example.demoapp.security.UserPrincipal;
+import com.example.demoapp.service.UserMembershipSelfService;
 import com.example.demoapp.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final UserMembershipSelfService userMembershipSelfService;
 
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
@@ -39,6 +44,34 @@ public class UserController {
         }
         UserResponse user = userService.getMe(principal.getUserId());
         return ResponseEntity.ok(user);
+    }
+
+    @GetMapping("/me/membership")
+    public ResponseEntity<MyMembershipResponse> getMyMembership(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) {
+            throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        }
+        return ResponseEntity.ok(userMembershipSelfService.getMyMembership(principal.getUserId()));
+    }
+
+    @PostMapping("/me/membership/subscribe")
+    public ResponseEntity<AdminMembershipRowResponse> subscribeMembership(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody MembershipSubscribeRequest request) {
+        if (principal == null) {
+            throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(userMembershipSelfService.subscribe(principal.getUserId(), request));
+    }
+
+    @PostMapping("/me/membership/cancel")
+    public ResponseEntity<Void> cancelMembership(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) {
+            throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        }
+        userMembershipSelfService.cancelMyMembership(principal.getUserId());
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/me")

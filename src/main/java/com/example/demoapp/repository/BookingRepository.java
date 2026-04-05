@@ -11,6 +11,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
+    long count();
+
+    long countByStatus(BookingStatus status);
+
+    long countByCustomer(User customer);
+
+    long countByMahir(User mahir);
+
     Page<Booking> findByCustomerOrderByCreatedAtDesc(User customer, Pageable pageable);
 
     Page<Booking> findByMahirOrderByCreatedAtDesc(User mahir, Pageable pageable);

@@ -1,5 +1,6 @@
 package com.example.demoapp.dto;
 
+import com.example.demoapp.entity.AccountStatus;
 import com.example.demoapp.entity.AccountType;
 import com.example.demoapp.entity.Role;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -37,6 +38,7 @@ public class UserResponse {
     /** Populated by admin APIs only. */
     private Boolean blocked;
     private String blockedReason;
+    private AccountStatus accountStatus;
 
     @Getter
     @Setter

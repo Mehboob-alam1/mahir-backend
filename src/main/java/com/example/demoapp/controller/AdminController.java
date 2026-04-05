@@ -3,6 +3,7 @@ package com.example.demoapp.controller;
 import com.example.demoapp.dto.*;
 import com.example.demoapp.entity.Role;
 import com.example.demoapp.service.AdminService;
+import com.example.demoapp.service.BannerService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,10 +11,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -23,13 +26,54 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final BannerService bannerService;
+
+    @GetMapping("/dashboard/summary")
+    public ResponseEntity<AdminDashboardSummaryResponse> dashboardSummary() {
+        return ResponseEntity.ok(adminService.getDashboardSummary());
+    }
+
+    @GetMapping("/dashboard/engagement")
+    public ResponseEntity<AdminEngagementResponse> dashboardEngagement(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(adminService.getDashboardEngagement(from, to));
+    }
+
+    @GetMapping("/banners")
+    public ResponseEntity<Page<BannerResponse>> listBanners(
+            @PageableDefault(size = 20, sort = "sortOrder", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(bannerService.listAdmin(pageable));
+    }
+
+    @PostMapping("/banners")
+    public ResponseEntity<BannerResponse> createBanner(@Valid @RequestBody BannerRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(bannerService.create(request));
+    }
+
+    @PutMapping("/banners/{id}")
+    public ResponseEntity<BannerResponse> putBanner(@PathVariable Long id, @Valid @RequestBody BannerRequest request) {
+        return ResponseEntity.ok(bannerService.update(id, request));
+    }
+
+    @PatchMapping("/banners/{id}")
+    public ResponseEntity<BannerResponse> patchBanner(@PathVariable Long id, @Valid @RequestBody BannerRequest request) {
+        return ResponseEntity.ok(bannerService.update(id, request));
+    }
+
+    @DeleteMapping("/banners/{id}")
+    public ResponseEntity<Void> deleteBanner(@PathVariable Long id) {
+        bannerService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping("/users")
     public ResponseEntity<Page<UserResponse>> listUsers(
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) Role role,
             @RequestParam(required = false) Boolean blocked,
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(adminService.listUsers(role, blocked, pageable));
+        return ResponseEntity.ok(adminService.listUsers(search, role, blocked, pageable));
     }
 
     @GetMapping("/users/{id}")
@@ -42,6 +86,42 @@ public class AdminController {
             @PathVariable Long id,
             @Valid @RequestBody AdminBlockUserRequest request) {
         return ResponseEntity.ok(adminService.setUserBlocked(id, request));
+    }
+
+    @PatchMapping("/users/{id}")
+    public ResponseEntity<UserResponse> patchUser(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminPatchUserRequest request) {
+        return ResponseEntity.ok(adminService.patchUser(id, request));
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        adminService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/users")
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody AdminCreateUserRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.createUserByAdmin(request));
+    }
+
+    @GetMapping("/users/{id}/membership")
+    public ResponseEntity<AdminUserMembershipDetailResponse> getUserMembership(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getUserMembershipAdmin(id));
+    }
+
+    @PatchMapping("/users/{id}/membership")
+    public ResponseEntity<AdminUserMembershipDetailResponse> patchUserMembership(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminPatchMembershipRequest request) {
+        return ResponseEntity.ok(adminService.patchUserMembershipAdmin(id, request));
+    }
+
+    @PostMapping("/users/{id}/membership/revoke")
+    public ResponseEntity<Void> revokeUserMembership(@PathVariable Long id) {
+        adminService.cancelActiveMembership(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/jobs")
@@ -63,10 +143,29 @@ public class AdminController {
         return ResponseEntity.ok(adminService.setReviewVisibility(id, request));
     }
 
+    @PatchMapping("/reviews/{id}")
+    public ResponseEntity<ReviewResponse> patchReview(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminReviewPatchRequest request) {
+        return ResponseEntity.ok(adminService.patchReview(id, request));
+    }
+
+    @PatchMapping("/jobs/{id}")
+    public ResponseEntity<JobResponse> patchJob(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminJobPatchRequest request) {
+        return ResponseEntity.ok(adminService.patchJob(id, request));
+    }
+
     @GetMapping("/support/chats")
     public ResponseEntity<Page<AdminChatThreadResponse>> listSupportChats(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(adminService.listSupportThreads(pageable));
+    }
+
+    @GetMapping("/support/chats/{threadId}")
+    public ResponseEntity<AdminChatThreadResponse> getSupportChat(@PathVariable Long threadId) {
+        return ResponseEntity.ok(adminService.getSupportChatThread(threadId));
     }
 
     @GetMapping("/support/chats/{threadId}/messages")
@@ -91,6 +190,11 @@ public class AdminController {
         return ResponseEntity.ok(adminService.updateFaq(id, request));
     }
 
+    @PutMapping("/faqs/{id}")
+    public ResponseEntity<FaqResponse> putFaq(@PathVariable Long id, @Valid @RequestBody FaqRequest request) {
+        return ResponseEntity.ok(adminService.updateFaq(id, request));
+    }
+
     @DeleteMapping("/faqs/{id}")
     public ResponseEntity<Void> deleteFaq(@PathVariable Long id) {
         adminService.deleteFaq(id);
@@ -109,6 +213,13 @@ public class AdminController {
 
     @PatchMapping("/membership-plans/{id}")
     public ResponseEntity<MembershipPlanResponse> updatePlan(
+            @PathVariable Long id,
+            @Valid @RequestBody MembershipPlanRequest request) {
+        return ResponseEntity.ok(adminService.updateMembershipPlan(id, request));
+    }
+
+    @PutMapping("/membership-plans/{id}")
+    public ResponseEntity<MembershipPlanResponse> putPlan(
             @PathVariable Long id,
             @Valid @RequestBody MembershipPlanRequest request) {
         return ResponseEntity.ok(adminService.updateMembershipPlan(id, request));

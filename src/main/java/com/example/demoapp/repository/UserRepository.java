@@ -9,10 +9,23 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+
+    long countByRole(Role role);
+
+    @Query("SELECT u FROM User u WHERE " +
+            "(COALESCE(:search, '') = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:role IS NULL OR u.role = :role) " +
+            "AND (:blocked IS NULL OR u.blocked = :blocked)")
+    Page<User> adminSearch(
+            @Param("search") String search,
+            @Param("role") Role role,
+            @Param("blocked") Boolean blocked,
+            Pageable pageable);
 
     Optional<User> findByEmail(String email);
 
@@ -33,4 +46,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findByBlockedTrue(Pageable pageable);
 
     Page<User> findByBlockedFalse(Pageable pageable);
+
+    long countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(LocalDateTime start, LocalDateTime endExclusive);
 }

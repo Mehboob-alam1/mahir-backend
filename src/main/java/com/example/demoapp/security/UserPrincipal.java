@@ -15,12 +15,13 @@ public class UserPrincipal implements UserDetails {
 
     private final Long userId;
     private final String email;
+    private final Role role;
     private final List<GrantedAuthority> authorities;
 
     public static UserPrincipal create(Long userId, String email, Role role) {
         Role r = role != null ? role : Role.USER;
         List<GrantedAuthority> auths = List.of(new SimpleGrantedAuthority("ROLE_" + r.name()));
-        return new UserPrincipal(userId, email, auths);
+        return new UserPrincipal(userId, email, r, auths);
     }
 
     @Override

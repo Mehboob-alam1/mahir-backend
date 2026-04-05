@@ -16,6 +16,8 @@ import java.util.List;
 @Repository
 public interface JobRepository extends JpaRepository<Job, Long> {
 
+    long countByStatus(JobStatus status);
+
     Page<Job> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     long countByPostedBy(User postedBy);

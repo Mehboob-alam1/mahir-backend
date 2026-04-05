@@ -112,6 +112,9 @@ public class AuthService {
         if (user.isBlocked()) {
             throw new UnauthorizedException("This account has been suspended");
         }
+        if (user.getAccountStatus() != AccountStatus.ACTIVE) {
+            throw new UnauthorizedException("This account is not active");
+        }
         String accessToken = jwtService.generateAccessToken(user.getEmail(), user.getId(), user.getRole());
         String refreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getId(), user.getRole());
         UserResponse userResponse = mapToUserResponse(user);
@@ -139,6 +142,9 @@ public class AuthService {
         if (user.isBlocked()) {
             throw new UnauthorizedException("This account has been suspended");
         }
+        if (user.getAccountStatus() != AccountStatus.ACTIVE) {
+            throw new UnauthorizedException("This account is not active");
+        }
         String newAccessToken = jwtService.generateAccessToken(user.getEmail(), user.getId(), user.getRole());
         String newRefreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getId(), user.getRole());
         return AuthResponse.builder()
@@ -162,6 +168,9 @@ public class AuthService {
             String email = claims.getSubject();
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new UnauthorizedException("User not found"));
+            if (user.isBlocked() || user.getAccountStatus() != AccountStatus.ACTIVE) {
+                throw new UnauthorizedException("Session expired or invalid");
+            }
             UserResponse userResponse = mapToUserResponse(user);
             return AuthResponse.builder()
                     .success(true)

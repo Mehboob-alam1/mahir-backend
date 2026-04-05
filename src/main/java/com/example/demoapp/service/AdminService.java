@@ -6,13 +6,20 @@ import com.example.demoapp.exception.BadRequestException;
 import com.example.demoapp.exception.ResourceNotFoundException;
 import com.example.demoapp.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,21 +37,14 @@ public class AdminService {
     private final FaqRepository faqRepository;
     private final MembershipPlanRepository membershipPlanRepository;
     private final UserMembershipRepository userMembershipRepository;
+    private final BannerRepository bannerRepository;
+    private final BookingRepository bookingRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final CategoryRepository categoryRepository;
 
-    public Page<UserResponse> listUsers(Role role, Boolean blocked, Pageable pageable) {
-        Page<User> page;
-        if (role != null && blocked != null) {
-            page = userRepository.findByRoleAndBlocked(role, blocked, pageable);
-        } else if (role != null) {
-            page = userRepository.findByRole(role, pageable);
-        } else if (Boolean.TRUE.equals(blocked)) {
-            page = userRepository.findByBlockedTrue(pageable);
-        } else if (Boolean.FALSE.equals(blocked)) {
-            page = userRepository.findByBlockedFalse(pageable);
-        } else {
-            page = userRepository.findAll(pageable);
-        }
-        return page.map(this::toAdminUserResponse);
+    public Page<UserResponse> listUsers(String search, Role role, Boolean blocked, Pageable pageable) {
+        String q = search != null ? search.trim() : "";
+        return userRepository.adminSearch(q, role, blocked, pageable).map(this::toAdminUserResponse);
     }
 
     public AdminUserDetailResponse getUserDetail(Long userId) {
@@ -269,6 +269,217 @@ public class AdminService {
         userMembershipRepository.save(active);
     }
 
+    public AdminDashboardSummaryResponse getDashboardSummary() {
+        Instant weekAgo = Instant.now().minus(7, ChronoUnit.DAYS);
+        return AdminDashboardSummaryResponse.builder()
+                .totalUsers(userRepository.count())
+                .totalCustomers(userRepository.countByRole(Role.USER))
+                .totalMahirs(userRepository.countByRole(Role.MAHIR))
+                .totalAdmins(userRepository.countByRole(Role.ADMIN))
+                .totalJobs(jobRepository.count())
+                .openJobs(jobRepository.countByStatus(JobStatus.OPEN))
+                .totalBookings(bookingRepository.count())
+                .completedBookings(bookingRepository.countByStatus(BookingStatus.COMPLETED))
+                .totalReviews(reviewRepository.count())
+                .chatMessagesLast7Days(chatMessageRepository.countByCreatedAtAfter(weekAgo))
+                .activeBanners(bannerRepository.countCurrentlyValid(Instant.now()))
+                .build();
+    }
+
+    public AdminEngagementResponse getDashboardEngagement(LocalDate from, LocalDate to) {
+        LocalDate end = to != null ? to : LocalDate.now(ZoneOffset.UTC);
+        LocalDate start = from != null ? from : end.minusDays(13);
+        if (start.isAfter(end)) {
+            LocalDate tmp = start;
+            start = end;
+            end = tmp;
+        }
+        List<AdminEngagementResponse.DailyCount> chatByDay = new ArrayList<>();
+        List<AdminEngagementResponse.DailyCount> regByDay = new ArrayList<>();
+        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+            Instant dayStart = d.atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant dayEnd = d.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+            long msgs = chatMessageRepository.countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(dayStart, dayEnd);
+            chatByDay.add(AdminEngagementResponse.DailyCount.builder()
+                    .date(d.toString())
+                    .count(msgs)
+                    .build());
+            LocalDateTime lStart = LocalDateTime.ofInstant(dayStart, ZoneOffset.UTC);
+            LocalDateTime lEnd = LocalDateTime.ofInstant(dayEnd, ZoneOffset.UTC);
+            long regs = userRepository.countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(lStart, lEnd);
+            regByDay.add(AdminEngagementResponse.DailyCount.builder()
+                    .date(d.toString())
+                    .count(regs)
+                    .build());
+        }
+        return AdminEngagementResponse.builder()
+                .chatMessagesByDay(chatByDay)
+                .newRegistrationsByDay(regByDay)
+                .build();
+    }
+
+    @Transactional
+    public UserResponse patchUser(Long userId, AdminPatchUserRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        if (user.getRole() == Role.ADMIN && Boolean.TRUE.equals(request.getBlocked())) {
+            throw new BadRequestException("Cannot block an ADMIN account");
+        }
+        if (request.getBlocked() != null) {
+            user.setBlocked(Boolean.TRUE.equals(request.getBlocked()));
+            user.setBlockedAt(user.isBlocked() ? Instant.now() : null);
+            if (!user.isBlocked()) {
+                user.setBlockedReason(null);
+            } else if (request.getBlockedReason() != null) {
+                user.setBlockedReason(request.getBlockedReason());
+            }
+        } else if (request.getBlockedReason() != null && user.isBlocked()) {
+            user.setBlockedReason(request.getBlockedReason());
+        }
+        if (request.getAccountStatus() != null) {
+            if (user.getRole() == Role.ADMIN && request.getAccountStatus() != AccountStatus.ACTIVE) {
+                throw new BadRequestException("Cannot change ADMIN account status away from ACTIVE");
+            }
+            user.setAccountStatus(request.getAccountStatus());
+        }
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            user.setFullName(request.getFullName().trim());
+        }
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            String email = request.getEmail().trim();
+            if (!email.equalsIgnoreCase(user.getEmail()) && userRepository.existsByEmail(email)) {
+                throw new BadRequestException("Email already in use: " + email);
+            }
+            user.setEmail(email);
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber().isBlank() ? null : request.getPhoneNumber().trim());
+        }
+        userRepository.save(user);
+        return toAdminUserResponse(user);
+    }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        if (user.getRole() == Role.ADMIN) {
+            throw new BadRequestException("Cannot delete an ADMIN account");
+        }
+        if (jobRepository.countByPostedBy(user) > 0
+                || bookingRepository.countByCustomer(user) > 0
+                || bookingRepository.countByMahir(user) > 0
+                || bidRepository.countByMahir(user) > 0) {
+            throw new BadRequestException("Cannot delete user with jobs, bids, or bookings");
+        }
+        try {
+            userRepository.delete(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new BadRequestException("Cannot delete user: related data still exists");
+        }
+    }
+
+    @Transactional
+    public UserResponse createUserByAdmin(AdminCreateUserRequest request) {
+        if (request.getRole() == Role.ADMIN) {
+            throw new BadRequestException("Creating ADMIN via API is not allowed");
+        }
+        if (userRepository.existsByEmail(request.getEmail().trim())) {
+            throw new BadRequestException("Email already registered: " + request.getEmail());
+        }
+        User user = User.builder()
+                .role(request.getRole())
+                .fullName(request.getFullName().trim())
+                .email(request.getEmail().trim().toLowerCase())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber())
+                .dateOfBirth(request.getDateOfBirth())
+                .accountType(request.getAccountType())
+                .accountStatus(AccountStatus.ACTIVE)
+                .build();
+        if (request.getRole() == Role.MAHIR) {
+            List<Category> categories = request.getServiceCategoryIds() == null || request.getServiceCategoryIds().isEmpty()
+                    ? new ArrayList<>()
+                    : categoryRepository.findAllById(request.getServiceCategoryIds());
+            user.setServiceCategories(categories);
+            user.setCustomServiceName(request.getCustomServiceName());
+            user.setCredits(3);
+        }
+        user = userRepository.save(user);
+        return toAdminUserResponse(user);
+    }
+
+    public AdminUserMembershipDetailResponse getUserMembershipAdmin(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        List<UserMembership> all = userMembershipRepository.findByUserOrderByCreatedAtDesc(user);
+        UserMembership active = userMembershipRepository.findByUserAndStatus(user, UserMembershipStatus.ACTIVE)
+                .orElse(null);
+        return AdminUserMembershipDetailResponse.builder()
+                .active(active != null ? toMembershipRow(active) : null)
+                .history(all.stream().map(this::toMembershipRow).collect(Collectors.toList()))
+                .build();
+    }
+
+    @Transactional
+    public AdminUserMembershipDetailResponse patchUserMembershipAdmin(Long userId, AdminPatchMembershipRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        if (user.getRole() == Role.ADMIN) {
+            throw new BadRequestException("Memberships are not used for ADMIN accounts");
+        }
+        if (request.getPlanId() != null) {
+            assignMembership(userId, AssignMembershipRequest.builder()
+                    .planId(request.getPlanId())
+                    .expiresAt(request.getExpiresAt())
+                    .build());
+        } else if (request.getExpiresAt() != null) {
+            UserMembership active = userMembershipRepository.findByUserAndStatus(user, UserMembershipStatus.ACTIVE)
+                    .orElseThrow(() -> new BadRequestException("No active membership for this user"));
+            active.setExpiresAt(request.getExpiresAt());
+            userMembershipRepository.save(active);
+        }
+        return getUserMembershipAdmin(userId);
+    }
+
+    @Transactional
+    public ReviewResponse patchReview(Long reviewId, AdminReviewPatchRequest request) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+        if (request.getHiddenFromPublic() != null) {
+            review.setHiddenFromPublic(Boolean.TRUE.equals(request.getHiddenFromPublic()));
+        }
+        if (request.getRating() != null) {
+            int r = request.getRating();
+            if (r < 1 || r > 5) {
+                throw new BadRequestException("Rating must be between 1 and 5");
+            }
+            review.setRating(r);
+        }
+        if (request.getComment() != null) {
+            review.setComment(request.getComment());
+        }
+        reviewRepository.save(review);
+        return toAdminReviewResponse(review);
+    }
+
+    @Transactional
+    public JobResponse patchJob(Long jobId, AdminJobPatchRequest request) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", jobId));
+        if (request.getStatus() != null) {
+            job.setStatus(request.getStatus());
+        }
+        jobRepository.save(job);
+        return toJobResponse(job);
+    }
+
+    public AdminChatThreadResponse getSupportChatThread(Long threadId) {
+        ChatThread thread = chatThreadRepository.findById(threadId)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat thread", threadId));
+        return toChatThreadResponse(thread);
+    }
+
     private void validatePlanAudience(MembershipPlan plan, Role userRole) {
         PlanAudience a = plan.getAudience();
         if (a == PlanAudience.BOTH) {
@@ -306,6 +517,7 @@ public class AdminService {
                 .createdAt(user.getCreatedAt())
                 .blocked(user.isBlocked())
                 .blockedReason(user.getBlockedReason())
+                .accountStatus(user.getAccountStatus())
                 .build();
     }
 

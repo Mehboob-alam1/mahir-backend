@@ -213,6 +213,7 @@ public class UserService {
                 .bio(user.getBio())
                 .credits(user.getCredits())
                 .createdAt(user.getCreatedAt())
+                .accountStatus(user.getAccountStatus())
                 .build();
     }
 }
