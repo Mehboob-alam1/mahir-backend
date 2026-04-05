@@ -1,4 +1,12 @@
 # Postgres for local / VPS. API runs separately: docker build + docker run (see docs/VPS_DEPLOY_FIND_MAHIR.md)
+#
+# Resolved defaults when POSTGRES_PASSWORD is not set in the environment:
+#   User:     mahir
+#   Password: changeme
+#   Database: mahir_db
+# From the mahir-api container on the same Compose network, use:
+#   DATABASE_URL=postgresql://mahir:changeme@postgres:5432/mahir_db
+# (If you ever change the password here, use the same value in DATABASE_URL.)
 services:
   postgres:
     image: postgres:16-alpine
