@@ -22,4 +22,6 @@ openssl rand -base64 48
 
 **`APP_RESET_PASSWORD_BASE_URL`:** public URL users open for reset links, e.g. `https://api.yourdomain.com` or `http://YOUR_PUBLIC_IP:8080` while testing.
 
+**Platform admin (always):** On every startup, if no user exists with email `admin.portal@findmahir.app`, one is created (`PlatformAdminSeedLoader`). Initial password is `Password123!` (same as sample-data demo users). This does **not** require `APP_SAMPLE_DATA`.
+
 See `docs/VPS_DEPLOY_FIND_MAHIR.md` for full deploy steps.

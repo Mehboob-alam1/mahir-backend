@@ -16,13 +16,14 @@ navigation, role checks).
 Admin login: same /auth/sign-in as other users, with an account that has
 role = ADMIN in the database.
 
-Sample-data mode (H2 or APP_SAMPLE_DATA on empty DB) creates:
+Platform admin is created automatically on startup if missing (PlatformAdminSeedLoader):
   Email: admin.portal@findmahir.app
-  Password: Password123! (same as other seed users)
-(Change in production.)
+  Password: Password123! (same as sample-data demo users)
+(Change in production.) Does not require APP_SAMPLE_DATA.
 
-Public sign-up rejects role ADMIN (403-style behavior: UnauthorizedException
-message "Cannot register as ADMIN via public API"). Create admins via DB or seed.
+Optional APP_SAMPLE_DATA still loads demo customers, Mahirs, jobs, etc.
+
+Public sign-up rejects role ADMIN (UnauthorizedException). Extra admins: DB or admin APIs.
 
 Blocked users:
 - Cannot sign in or refresh token ("This account has been suspended")

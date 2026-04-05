@@ -41,9 +41,6 @@ public class SampleDataLoader implements ApplicationRunner {
     /** Shared initial password for all seeded accounts (change after first login in production). */
     public static final String SEED_PLAINTEXT_PASSWORD = "Password123!";
 
-    /** Admin account created when sample data runs (same password as other seeds). */
-    public static final String SEED_ADMIN_EMAIL = "admin.portal@findmahir.app";
-
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
@@ -59,7 +56,6 @@ public class SampleDataLoader implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         try {
             String enc = passwordEncoder.encode(SEED_PLAINTEXT_PASSWORD);
-            ensureSeedAdmin(enc);
             if (userRepository.existsByEmail(SEED_MARKER_EMAIL)) {
                 return;
             }
@@ -242,28 +238,11 @@ public class SampleDataLoader implements ApplicationRunner {
 
             log.info("Sample data loaded: customers, Mahirs, jobs, bookings, chat, review. "
                             + "Customer login: {} / {} | Admin: {} / {}",
-                    SEED_MARKER_EMAIL, SEED_PLAINTEXT_PASSWORD, SEED_ADMIN_EMAIL, SEED_PLAINTEXT_PASSWORD);
+                    SEED_MARKER_EMAIL, SEED_PLAINTEXT_PASSWORD,
+                    PlatformAdminSeedLoader.SEED_ADMIN_EMAIL, SEED_PLAINTEXT_PASSWORD);
         } catch (Exception e) {
             log.warn("Sample data load failed (safe to ignore if DB already customized): {}", e.getMessage());
         }
-    }
-
-    private void ensureSeedAdmin(String encPassword) {
-        if (userRepository.existsByEmail(SEED_ADMIN_EMAIL)) {
-            return;
-        }
-        userRepository.save(User.builder()
-                .fullName("Platform Admin")
-                .email(SEED_ADMIN_EMAIL)
-                .password(encPassword)
-                .phoneNumber("+216 00 000 001")
-                .dateOfBirth(LocalDate.of(1985, 1, 1))
-                .location(loc("Operations", 36.8065, 10.1815))
-                .accountType(AccountType.PREMIUM)
-                .role(Role.ADMIN)
-                .blocked(false)
-                .build());
-        log.info("Created seed ADMIN user: {}", SEED_ADMIN_EMAIL);
     }
 
     private Category cat(String name) {
