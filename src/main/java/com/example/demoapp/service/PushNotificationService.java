@@ -21,13 +21,20 @@ import org.springframework.stereotype.Service;
 public class PushNotificationService {
 
     private final UserRepository userRepository;
+    private final NotificationPushPreferenceService notificationPushPreferenceService;
 
     /**
      * Send a push notification to the user's device(s). Called after saving an in-app notification.
      * If Firebase is not configured or user has no FCM token, this does nothing.
+     *
+     * @param notificationType same string as in-app notification type (e.g. CHAT_MESSAGE); used for preference flags
      */
-    public void sendToUser(Long userId, String title, String body) {
+    public void sendToUser(Long userId, String title, String body, String notificationType) {
         if (userId == null || (title == null && body == null)) return;
+        if (!notificationPushPreferenceService.isPushAllowed(userId, notificationType)) {
+            log.debug("FCM push skipped for user {} due to notification preferences (type={})", userId, notificationType);
+            return;
+        }
         if (FirebaseApp.getApps().isEmpty()) {
             log.info("FCM push skipped for user {}: Firebase not initialized (set APP_FIREBASE_SERVICE_ACCOUNT_JSON on server)", userId);
             return;

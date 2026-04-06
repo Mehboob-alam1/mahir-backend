@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId, reviewId, planId, faqId, bannerId. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
+    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId, reviewId, planId, faqId, bannerId. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -218,7 +218,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/auth/check-session",
-            "description": "Validate token and return current user."
+            "description": "Validate token and return current user (includes **profilePictureUrl** / **avatarUrl** when set)."
           }
         },
         {
@@ -226,7 +226,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/auth/logout",
-            "description": "Logout. Client discards tokens."
+            "description": "Logout success message. JWTs are stateless — discard access/refresh tokens on the client; no server-side token store to invalidate."
           }
         }
       ]
@@ -473,7 +473,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/users/me",
-            "description": "Get current user profile (includes credits for MAHIR). Requires Bearer token."
+            "description": "Get current user profile (includes credits for MAHIR, **avatarUrl**, **profilePictureUrl**). Requires Bearer token."
           }
         },
         {
@@ -534,6 +534,112 @@
             "method": "POST",
             "url": "{{baseUrl}}/api/users/me/membership/cancel",
             "description": "Cancels current ACTIVE membership for the logged-in user."
+          }
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/me/notification-preferences",
+            "description": "Returns four booleans: inboxMessages, ratingReminders, promotionsAndTips, yourAccount. Defaults to all true if no row exists yet."
+          }
+        },
+        {
+          "name": "Patch Notification Preferences",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inboxMessages\": true,\n  \"ratingReminders\": false,\n  \"promotionsAndTips\": true,\n  \"yourAccount\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/users/me/notification-preferences",
+            "description": "Partial update. Backend uses these flags before sending FCM pushes (mapped by notification type)."
+          }
+        },
+        {
+          "name": "Upload Profile Picture",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "description": "JPEG, PNG, or WebP; max 5 MB", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/users/me/profile-picture",
+            "description": "Multipart field name must be **file**. 200: { \"profilePictureUrl\": \"...\" }. Same URL pattern as GET /api/files/avatars/{{userId}}."
+          }
+        },
+        {
+          "name": "Delete Profile Picture",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/users/me/profile-picture",
+            "description": "Removes stored image files; user profile then has null profilePictureUrl/avatarUrl."
+          }
+        },
+        {
+          "name": "Get Avatar File (public, no auth)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/files/avatars/{{userId}}",
+            "description": "Public download of the avatar binary. No Bearer required. Path has no extension; server picks jpg/png/webp on disk."
+          }
+        },
+        {
+          "name": "Change Password (logged in)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"secret123\",\n  \"newPassword\": \"newSecret456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/me/change-password",
+            "description": "Authenticated password change. For email reset flow use Auth > Forgot/Reset Password."
+          }
+        },
+        {
+          "name": "Deactivate Account",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Taking a break\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/me/deactivate",
+            "description": "Marks account deactivated (optional reason). Then call Logout and clear local session."
+          }
+        },
+        {
+          "name": "Delete My Account",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/users/me",
+            "description": "Deletes the authenticated user (not the same as DELETE /api/users/{{userId}} legacy). 200 OK — clear tokens on client."
+          }
+        },
+        {
+          "name": "Delete My Account (confirm in body)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"confirm\": \"DELETE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/me/delete",
+            "description": "Alternative to DELETE /api/users/me: body must be exactly { \"confirm\": \"DELETE\" }."
           }
         },
         {

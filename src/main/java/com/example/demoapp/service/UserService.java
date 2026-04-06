@@ -210,6 +210,7 @@ public class UserService {
                 .serviceCategories(UserResponse.fromCategoryList(user.getServiceCategories()))
                 .customServiceName(user.getCustomServiceName())
                 .avatarUrl(user.getAvatarUrl())
+                .profilePictureUrl(user.getAvatarUrl())
                 .bio(user.getBio())
                 .credits(user.getCredits())
                 .createdAt(user.getCreatedAt())

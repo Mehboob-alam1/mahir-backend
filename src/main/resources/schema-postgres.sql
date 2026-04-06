@@ -170,6 +170,14 @@ CREATE TABLE IF NOT EXISTS user_memberships (
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE';
 
+CREATE TABLE IF NOT EXISTS user_notification_preferences (
+    user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    inbox_messages BOOLEAN NOT NULL DEFAULT TRUE,
+    rating_reminders BOOLEAN NOT NULL DEFAULT TRUE,
+    promotions_and_tips BOOLEAN NOT NULL DEFAULT TRUE,
+    your_account BOOLEAN NOT NULL DEFAULT TRUE
+);
+
 CREATE TABLE IF NOT EXISTS banners (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR(200),

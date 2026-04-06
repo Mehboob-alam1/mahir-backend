@@ -30,6 +30,8 @@ public class UserResponse {
     private List<CategoryResponse> serviceCategories;
     private String customServiceName;
     private String avatarUrl;
+    /** Same URL as {@link #avatarUrl}; nullable when no picture is set. */
+    private String profilePictureUrl;
     private String bio;
     /** For MAHIR: credits for WhatsApp contact (1 per job). */
     private Integer credits;

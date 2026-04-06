@@ -32,7 +32,7 @@ public class NotificationService {
                 .relatedId(relatedId)
                 .build();
         notificationRepository.save(n);
-        pushNotificationService.sendToUser(userId, title, body);
+        pushNotificationService.sendToUser(userId, title, body, type);
     }
 
     public Page<NotificationResponse> listMy(Long userId, Pageable pageable) {

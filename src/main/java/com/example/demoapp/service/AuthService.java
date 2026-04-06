@@ -273,6 +273,8 @@ public class AuthService {
                 .accountType(user.getAccountType())
                 .serviceCategories(UserResponse.fromCategoryList(user.getServiceCategories() != null ? user.getServiceCategories() : List.of()))
                 .customServiceName(user.getCustomServiceName())
+                .avatarUrl(user.getAvatarUrl())
+                .profilePictureUrl(user.getAvatarUrl())
                 .credits(user.getCredits())
                 .createdAt(user.getCreatedAt())
                 .build();
