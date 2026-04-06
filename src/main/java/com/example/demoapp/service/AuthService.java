@@ -51,31 +51,42 @@ public class AuthService {
         if (request.getRole() == Role.ADMIN) {
             throw new UnauthorizedException("Cannot register as ADMIN via public API");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email already registered: " + request.getEmail());
+        String emailNorm = normalizeEmail(request.getEmail());
+        if (userRepository.existsByEmail(emailNorm)) {
+            throw new DuplicateResourceException("Email already registered: " + emailNorm);
         }
 
         Location location = null;
         if (request.getLocation() != null) {
-            if (request.getLocation().getLatitude() == null || request.getLocation().getLongitude() == null) {
-                throw new BadRequestException("Location must include latitude and longitude for registration");
+            var loc = request.getLocation();
+            boolean hasCoords = loc.getLatitude() != null || loc.getLongitude() != null;
+            boolean hasStreet = loc.getStreetAddress() != null && !loc.getStreetAddress().isBlank();
+            if (hasCoords || hasStreet) {
+                if (loc.getLatitude() == null || loc.getLongitude() == null) {
+                    throw new BadRequestException("Location must include latitude and longitude when location is provided");
+                }
+                location = Location.builder()
+                        .streetAddress(loc.getStreetAddress())
+                        .latitude(loc.getLatitude())
+                        .longitude(loc.getLongitude())
+                        .build();
             }
-            location = Location.builder()
-                    .streetAddress(request.getLocation().getStreetAddress())
-                    .latitude(request.getLocation().getLatitude())
-                    .longitude(request.getLocation().getLongitude())
-                    .build();
         }
+
+        String phone = request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()
+                ? request.getPhoneNumber().trim()
+                : null;
 
         User user = User.builder()
                 .role(request.getRole())
-                .fullName(request.getFullName())
-                .email(request.getEmail())
+                .fullName(request.getFullName().trim())
+                .email(emailNorm)
                 .password(passwordEncoder.encode(request.getPassword()))
-                .phoneNumber(request.getPhoneNumber())
+                .phoneNumber(phone)
                 .dateOfBirth(request.getDateOfBirth())
                 .location(location)
                 .accountType(request.getAccountType())
+                .accountStatus(AccountStatus.ACTIVE)
                 .build();
 
         if (request.getRole() == Role.MAHIR) {
@@ -104,7 +115,8 @@ public class AuthService {
     }
 
     public AuthResponse signIn(SignInRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        String emailNorm = normalizeEmail(request.getEmail());
+        User user = userRepository.findByEmail(emailNorm)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Invalid email or password");
@@ -128,6 +140,13 @@ public class AuthService {
                 .build();
     }
 
+    private static String normalizeEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase();
+    }
+
     public AuthResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new UnauthorizedException("Refresh token required");
@@ -136,7 +155,7 @@ public class AuthService {
             throw new UnauthorizedException("Invalid refresh token");
         }
         var claims = jwtService.parseToken(refreshToken);
-        String email = claims.getSubject();
+        String email = normalizeEmail(claims.getSubject());
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
         if (user.isBlocked()) {
@@ -165,7 +184,7 @@ public class AuthService {
                 throw new UnauthorizedException("Session expired or invalid");
             }
             var claims = jwtService.parseToken(accessToken);
-            String email = claims.getSubject();
+            String email = normalizeEmail(claims.getSubject());
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new UnauthorizedException("User not found"));
             if (user.isBlocked() || user.getAccountStatus() != AccountStatus.ACTIVE) {
@@ -189,7 +208,7 @@ public class AuthService {
 
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        User user = userRepository.findByEmail(normalizeEmail(request.getEmail())).orElse(null);
         if (user == null) {
             log.debug("Forgot password requested for unknown email: {}", request.getEmail());
             return;

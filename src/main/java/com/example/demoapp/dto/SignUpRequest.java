@@ -32,15 +32,15 @@ public class SignUpRequest {
     @Size(min = 6, max = 100, message = "Password must be 6-100 characters")
     private String password;
 
-    @NotBlank(message = "Phone number is required")
+    /** Optional; omit or send blank if the app collects it later. */
     @Size(max = 20)
     private String phoneNumber;
 
-    @NotNull(message = "Date of birth is required")
+    /** Optional. */
     private LocalDate dateOfBirth;
 
+    /** Optional. If present, latitude and longitude are required together. */
     @Valid
-    @NotNull(message = "Location is required")
     private LocationDto location;
 
     @NotNull(message = "Account type is required (FREEMIUM or PREMIUM)")
