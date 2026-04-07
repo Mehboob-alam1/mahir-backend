@@ -77,6 +77,10 @@ public class AuthService {
                 ? request.getPhoneNumber().trim()
                 : null;
 
+        AccountType accountType = request.getRole() == Role.MAHIR
+                ? AccountType.FREEMIUM
+                : request.getAccountType();
+
         User user = User.builder()
                 .role(request.getRole())
                 .fullName(request.getFullName().trim())
@@ -85,7 +89,7 @@ public class AuthService {
                 .phoneNumber(phone)
                 .dateOfBirth(request.getDateOfBirth())
                 .location(location)
-                .accountType(request.getAccountType())
+                .accountType(accountType)
                 .accountStatus(AccountStatus.ACTIVE)
                 .build();
 

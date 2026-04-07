@@ -387,6 +387,10 @@ public class AdminService {
         if (userRepository.existsByEmail(request.getEmail().trim())) {
             throw new BadRequestException("Email already registered: " + request.getEmail());
         }
+        AccountType accountType = request.getRole() == Role.MAHIR
+                ? AccountType.FREEMIUM
+                : request.getAccountType();
+
         User user = User.builder()
                 .role(request.getRole())
                 .fullName(request.getFullName().trim())
@@ -394,7 +398,7 @@ public class AdminService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phoneNumber(request.getPhoneNumber())
                 .dateOfBirth(request.getDateOfBirth())
-                .accountType(request.getAccountType())
+                .accountType(accountType)
                 .accountStatus(AccountStatus.ACTIVE)
                 .build();
         if (request.getRole() == Role.MAHIR) {

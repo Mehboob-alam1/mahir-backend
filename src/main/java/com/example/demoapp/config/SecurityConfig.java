@@ -39,6 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/mahirs/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/files/avatars/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/files/banners/**").permitAll()
                         .requestMatchers("/api/test-notification").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/error").permitAll()

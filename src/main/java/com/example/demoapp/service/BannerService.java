@@ -1,23 +1,35 @@
 package com.example.demoapp.service;
 
+import com.example.demoapp.dto.AdminBannerImageUploadResponse;
 import com.example.demoapp.dto.BannerRequest;
 import com.example.demoapp.dto.BannerResponse;
 import com.example.demoapp.entity.Banner;
 import com.example.demoapp.entity.PlanAudience;
 import com.example.demoapp.entity.Role;
 import com.example.demoapp.exception.BadRequestException;
+import com.example.demoapp.exception.PayloadTooLargeException;
 import com.example.demoapp.exception.ResourceNotFoundException;
+import com.example.demoapp.exception.UnsupportedMediaTypeAppException;
 import com.example.demoapp.repository.BannerRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,7 +37,74 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class BannerService {
 
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp"
+    );
+    private static final long MAX_BANNER_IMAGE_BYTES = 5L * 1024 * 1024;
+
     private final BannerRepository bannerRepository;
+
+    @Value("${app.public-base-url:http://localhost:8080}")
+    private String publicBaseUrl;
+
+    @Value("${app.files.upload-dir:uploads}")
+    private String uploadDir;
+
+    private Path bannerImageRoot;
+
+    @PostConstruct
+    void initBannerStorage() throws IOException {
+        bannerImageRoot = Path.of(uploadDir).resolve("banners").toAbsolutePath().normalize();
+        Files.createDirectories(bannerImageRoot);
+    }
+
+    public Path getBannerImageRoot() {
+        return bannerImageRoot;
+    }
+
+    /**
+     * Stores a banner image and returns public URLs for use in {@link BannerRequest#setImageUrl(String)}.
+     * Multipart field name: {@code file}. Accepts JPEG, PNG, WebP up to 5 MB.
+     */
+    public AdminBannerImageUploadResponse uploadBannerImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("File is required (multipart field name: file)");
+        }
+        String ct = file.getContentType();
+        if (ct == null || !ALLOWED_IMAGE_TYPES.contains(ct.toLowerCase(Locale.ROOT))) {
+            throw new UnsupportedMediaTypeAppException("Unsupported media type; use JPEG, PNG, or WebP");
+        }
+        if (file.getSize() > MAX_BANNER_IMAGE_BYTES) {
+            throw new PayloadTooLargeException("File too large (max 5 MB)");
+        }
+        String ext = extensionForContentType(ct);
+        String storedName = UUID.randomUUID() + "." + ext;
+        Path target = bannerImageRoot.resolve(storedName);
+        try {
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new BadRequestException("Could not store file: " + e.getMessage());
+        }
+        String base = publicBaseUrl.replaceAll("/+$", "");
+        String publicPath = "/api/files/banners/" + storedName;
+        String fullUrl = base + publicPath;
+        return AdminBannerImageUploadResponse.builder()
+                .imageUrl(fullUrl)
+                .url(fullUrl)
+                .path(publicPath)
+                .build();
+    }
+
+    private static String extensionForContentType(String ct) {
+        String c = ct.toLowerCase(Locale.ROOT);
+        if (c.contains("jpeg") || c.contains("jpg")) {
+            return "jpg";
+        }
+        if (c.contains("png")) {
+            return "png";
+        }
+        return "webp";
+    }
 
     public List<BannerResponse> listActiveForHome(Role role) {
         Instant now = Instant.now();

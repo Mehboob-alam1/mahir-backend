@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId, reviewId, planId, faqId, bannerId. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
+    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews. **MAHIR** accounts are stored as **FREEMIUM** at signup and when admin creates a Mahir; use membership for premium Mahir plans.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD + **POST /api/admin/banners/upload** (multipart `file` → imageUrl), public GET **/api/files/banners/{uuid.ext}**, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId, reviewId, planId, faqId, bannerId. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -73,10 +73,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"role\": \"MAHIR\",\n  \"fullName\": \"Sara Ahmed\",\n  \"email\": \"sara@example.com\",\n  \"password\": \"secret123\",\n  \"phoneNumber\": \"+923009876543\",\n  \"dateOfBirth\": \"1988-11-10\",\n  \"location\": {\n    \"streetAddress\": \"Gulberg III, Lahore\",\n    \"latitude\": 31.52,\n    \"longitude\": 74.36\n  },\n  \"accountType\": \"PREMIUM\",\n  \"serviceCategoryIds\": [1, 2],\n  \"customServiceName\": \"Custom Home Repairs\"\n}"
+              "raw": "{\n  \"role\": \"MAHIR\",\n  \"fullName\": \"Sara Ahmed\",\n  \"email\": \"sara@example.com\",\n  \"password\": \"secret123\",\n  \"phoneNumber\": \"+923009876543\",\n  \"dateOfBirth\": \"1988-11-10\",\n  \"location\": {\n    \"streetAddress\": \"Gulberg III, Lahore\",\n    \"latitude\": 31.52,\n    \"longitude\": 74.36\n  },\n  \"accountType\": \"FREEMIUM\",\n  \"serviceCategoryIds\": [1, 2],\n  \"customServiceName\": \"Custom Home Repairs\"\n}"
             },
             "url": "{{baseUrl}}/auth/signup",
-            "description": "Register as Become Mahir (professional). Role MAHIR. Use category IDs from GET /api/categories or set customServiceName. MAHIR gets 3 credits for WhatsApp contact."
+            "description": "Register as Become Mahir (professional). Backend always stores MAHIR as **FREEMIUM** at signup (even if client sends PREMIUM). MAHIR gets 3 credits for WhatsApp contact. Upgrade via membership/admin as needed."
           }
         },
         {
@@ -988,6 +988,21 @@
           }
         },
         {
+          "name": "Upload Banner Image (multipart)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "description": "JPEG, PNG, or WebP; max 5 MB", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/admin/banners/upload",
+            "description": "ADMIN only. Field name **file**. 200: { imageUrl, url, path } — use imageUrl (or url) as imageUrl when calling Create/Update Banner. Public GET: /api/files/banners/{uuid.ext}"
+          }
+        },
+        {
           "name": "Create Banner",
           "event": [{
             "listen": "test",
@@ -1010,7 +1025,7 @@
               "raw": "{\n  \"title\": \"Welcome\",\n  \"imageUrl\": \"https://example.com/banner.jpg\",\n  \"linkUrl\": \"https://example.com\",\n  \"sortOrder\": 0,\n  \"active\": true,\n  \"audience\": \"BOTH\",\n  \"startsAt\": null,\n  \"endsAt\": null\n}"
             },
             "url": "{{baseUrl}}/api/admin/banners",
-            "description": "audience: USER | MAHIR | BOTH. Saves bannerId."
+            "description": "audience: USER | MAHIR | BOTH. For imageUrl use **Upload Banner Image** first or any HTTPS URL. Saves bannerId."
           }
         },
         {

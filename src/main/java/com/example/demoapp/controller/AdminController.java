@@ -13,8 +13,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -44,6 +46,14 @@ public class AdminController {
     public ResponseEntity<Page<BannerResponse>> listBanners(
             @PageableDefault(size = 20, sort = "sortOrder", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(bannerService.listAdmin(pageable));
+    }
+
+    /**
+     * Multipart field name: {@code file}. Returns {@code imageUrl} / {@code url} for {@code POST /api/admin/banners} JSON body.
+     */
+    @PostMapping(value = "/banners/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AdminBannerImageUploadResponse> uploadBannerImage(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(bannerService.uploadBannerImage(file));
     }
 
     @PostMapping("/banners")
