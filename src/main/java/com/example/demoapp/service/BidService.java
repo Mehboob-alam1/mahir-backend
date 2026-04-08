@@ -54,19 +54,20 @@ public class BidService {
                 .status(BidStatus.PENDING)
                 .build();
         bid = bidRepository.save(bid);
+        bookingService.createFromBid(bid);
         notificationService.create(job.getPostedBy().getId(), "BID_RECEIVED", "New bid",
                 "You have a new bid on your job. Tap to view.", job.getId());
-        return toBidResponse(bid);
+        return toBidResponse(bid, bookingService.getChatThreadIdForBidId(bid.getId()));
     }
 
     public Page<BidResponse> listBidsForJob(Long jobId, Long userId, Pageable pageable) {
         Job job = jobRepository.findById(jobId).orElseThrow(() -> new ResourceNotFoundException("Job", jobId));
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", userId));
         if (job.getPostedBy().getId().equals(userId)) {
-            return bidRepository.findByJobOrderByCreatedAtDesc(job, pageable).map(this::toBidResponse);
+            return bidRepository.findByJobOrderByCreatedAtDesc(job, pageable).map(b -> toBidResponse(b, bookingService.getChatThreadIdForBidId(b.getId())));
         }
         if (user.getRole() == Role.MAHIR) {
-            return bidRepository.findByJobAndMahirOrderByCreatedAtDesc(job, user, pageable).map(this::toBidResponse);
+            return bidRepository.findByJobAndMahirOrderByCreatedAtDesc(job, user, pageable).map(b -> toBidResponse(b, bookingService.getChatThreadIdForBidId(b.getId())));
         }
         throw new UnauthorizedException("Only the job poster or a bidding Mahir can list bids for this job");
     }
@@ -79,7 +80,7 @@ public class BidService {
         Page<Bid> page = status != null
                 ? bidRepository.findByMahirAndStatusOrderByCreatedAtDesc(mahir, status, pageable)
                 : bidRepository.findByMahirOrderByCreatedAtDesc(mahir, pageable);
-        return page.map(this::toBidResponse);
+        return page.map(b -> toBidResponse(b, bookingService.getChatThreadIdForBidId(b.getId())));
     }
 
     @Transactional
@@ -111,7 +112,8 @@ public class BidService {
         }
         job.setStatus(JobStatus.ASSIGNED);
         jobRepository.save(job);
-        com.example.demoapp.dto.BookingResponse booking = bookingService.createFromAcceptedBid(job, bid);
+        bookingService.cancelPendingJobBookingsExceptBid(job, bidId);
+        com.example.demoapp.dto.BookingResponse booking = bookingService.finalizeAcceptedBid(job, bid);
         notificationService.create(bid.getMahir().getId(), "BID_ACCEPTED", "Bid accepted",
                 "Your bid was accepted. Tap to view the booking.", booking.getId());
         notificationService.create(job.getPostedBy().getId(), "BOOKING_CONFIRMED", "Booking confirmed",
@@ -131,11 +133,12 @@ public class BidService {
         }
         bid.setStatus(BidStatus.REJECTED);
         bidRepository.save(bid);
+        bookingService.cancelBookingForRejectedBid(bid);
         notificationService.create(bid.getMahir().getId(), "BID_REJECTED", "Bid not accepted",
                 "Your bid was not accepted for this job.", jobId);
     }
 
-    private BidResponse toBidResponse(Bid b) {
+    private BidResponse toBidResponse(Bid b, Long chatThreadId) {
         Double rating = reviewRepository.getAverageRatingByMahirId(b.getMahir().getId());
         long reviewCount = reviewRepository.countPublicByMahirId(b.getMahir().getId());
         return BidResponse.builder()
@@ -152,6 +155,7 @@ public class BidService {
                 .estimatedDurationHours(b.getEstimatedDurationHours())
                 .status(b.getStatus())
                 .createdAt(b.getCreatedAt())
+                .chatThreadId(chatThreadId)
                 .build();
     }
 }

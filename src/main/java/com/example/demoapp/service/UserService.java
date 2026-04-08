@@ -97,8 +97,8 @@ public class UserService {
                         ? new ArrayList<>()
                         : categoryRepository.findAllById(request.getServiceCategoryIds()));
             }
-            if (request.getCustomServiceName() != null) {
-                user.setCustomServiceName(request.getCustomServiceName());
+            if (request.getCustomServiceName() != null && !request.getCustomServiceName().isBlank()) {
+                user.setCustomServiceName(request.getCustomServiceName().trim());
             }
         }
         if (request.getAvatarUrl() != null) {

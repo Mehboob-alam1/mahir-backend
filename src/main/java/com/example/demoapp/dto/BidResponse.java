@@ -27,4 +27,6 @@ public class BidResponse {
     private Integer estimatedDurationHours;
     private BidStatus status;
     private Instant createdAt;
+    /** Chat thread for this bid (poster ↔ Mahir), created when the bid is placed. */
+    private Long chatThreadId;
 }

@@ -56,7 +56,11 @@ public class ChatService {
     @Transactional
     public ChatMessageResponse sendMessage(Long threadId, Long userId, ChatMessageRequest request) {
         ChatThread thread = threadRepository.findById(threadId).orElseThrow(() -> new ResourceNotFoundException("Chat thread", threadId));
-        ensureParticipant(thread.getBooking(), userId);
+        Booking booking = thread.getBooking();
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new UnauthorizedException("This conversation is closed");
+        }
+        ensureParticipant(booking, userId);
         User sender = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", userId));
         ChatMessage msg = ChatMessage.builder()
                 .thread(thread)
@@ -64,7 +68,7 @@ public class ChatService {
                 .content(request.getContent())
                 .build();
         msg = messageRepository.save(msg);
-        User other = thread.getBooking().getCustomer().getId().equals(userId) ? thread.getBooking().getMahir() : thread.getBooking().getCustomer();
+        User other = booking.getCustomer().getId().equals(userId) ? booking.getMahir() : booking.getCustomer();
         String content = request.getContent() != null ? request.getContent() : "";
         String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
         String body = sender.getFullName() + ": " + (preview.isEmpty() ? "New message from " + sender.getFullName() : preview);

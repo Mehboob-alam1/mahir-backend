@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews. **MAHIR** accounts are stored as **FREEMIUM** at signup and when admin creates a Mahir; use membership for premium Mahir plans.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD + **POST /api/admin/banners/upload** (multipart `file` → imageUrl), public GET **/api/files/banners/{uuid.ext}**, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId, reviewId, planId, faqId, bannerId. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
+    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews. **MAHIR** accounts are stored as **FREEMIUM** at signup and when admin creates a Mahir; use membership for premium Mahir plans.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD + **POST /api/admin/banners/upload** (multipart `file` → imageUrl), public GET **/api/files/banners/{uuid.ext}**, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId, reviewId, planId, faqId, bannerId. **Hire from profile:** POST `/api/users/{mahirId}/hire-invite` (USER only) → use `chatThreadId` with chat APIs. **Bid apply:** POST bid response includes `chatThreadId` for messaging before accept. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -347,7 +347,7 @@
               "raw": "{\n  \"message\": \"I can do this at 900 Rs/hr. Available weekends.\",\n  \"proposedPrice\": 1800,\n  \"proposedAt\": \"2025-03-15T14:00:00\",\n  \"estimatedDurationHours\": 2\n}"
             },
             "url": "{{baseUrl}}/api/jobs/{{jobId}}/bids",
-            "description": "MAHIR applies to a job. Message required; proposedPrice, proposedAt (ISO-8601), estimatedDurationHours optional. One bid per Mahir per job. Saves bidId."
+            "description": "MAHIR applies to a job. Message required; proposedPrice, proposedAt (ISO-8601), estimatedDurationHours optional. One bid per Mahir per job. Saves bidId. Response includes **chatThreadId** — poster and Mahir can message before bid accept; thread is tied to a PENDING booking."
           }
         },
         {
@@ -488,6 +488,20 @@
             },
             "url": "{{baseUrl}}/api/users/me",
             "description": "Update current user profile. All fields optional. MAHIR can set serviceCategoryIds and customServiceName."
+          }
+        },
+        {
+          "name": "Send hire invite (from Mahir profile)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Hi, I would like to hire you for a project.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{mahirId}}/hire-invite",
+            "description": "USER (customer) only. Sends hire invitation to Mahir (path = {{mahirId}}); Mahir gets notification type HIRE_INVITE. Response is a BookingResponse with **chatThreadId** — use existing chat APIs (GET/POST /api/chats/{threadId}/messages). Empty body `{}` or omit body is allowed; message is optional. Reuses active direct (no-job) booking between same pair if one exists."
           }
         },
         {

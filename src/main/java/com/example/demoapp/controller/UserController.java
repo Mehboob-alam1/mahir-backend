@@ -1,5 +1,6 @@
 package com.example.demoapp.controller;
 
+import com.example.demoapp.dto.BookingResponse;
 import com.example.demoapp.dto.ChangePasswordRequest;
 import com.example.demoapp.dto.DeactivateAccountRequest;
 import com.example.demoapp.dto.DeleteAccountRequest;
@@ -9,11 +10,14 @@ import com.example.demoapp.dto.MyMembershipResponse;
 import com.example.demoapp.dto.AdminMembershipRowResponse;
 import com.example.demoapp.dto.NotificationPreferencesPatchRequest;
 import com.example.demoapp.dto.NotificationPreferencesResponse;
+import com.example.demoapp.dto.HireInviteRequest;
 import com.example.demoapp.dto.ProfilePictureUploadResponse;
 import com.example.demoapp.dto.UpdateProfileRequest;
 import com.example.demoapp.dto.UserRequest;
 import com.example.demoapp.dto.UserResponse;
+import com.example.demoapp.entity.Role;
 import com.example.demoapp.security.UserPrincipal;
+import com.example.demoapp.service.BookingService;
 import com.example.demoapp.service.UserMembershipSelfService;
 import com.example.demoapp.service.UserService;
 import com.example.demoapp.service.UserSettingsService;
@@ -39,6 +43,7 @@ public class UserController {
     private final UserService userService;
     private final UserMembershipSelfService userMembershipSelfService;
     private final UserSettingsService userSettingsService;
+    private final BookingService bookingService;
 
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
@@ -210,6 +215,25 @@ public class UserController {
             @PathVariable Long id) {
         if (principal == null) throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
         return ResponseEntity.ok(userService.getPublicProfile(id));
+    }
+
+    /**
+     * Customer sends a hire invitation from a Mahir's public profile: Mahir gets a notification and a chat thread opens.
+     */
+    @PostMapping("/{mahirId}/hire-invite")
+    public ResponseEntity<BookingResponse> sendHireInvite(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long mahirId,
+            @Valid @RequestBody(required = false) HireInviteRequest body) {
+        if (principal == null) {
+            throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        }
+        if (principal.getRole() != Role.USER) {
+            throw new com.example.demoapp.exception.UnauthorizedException("Only customers can send a hire invitation");
+        }
+        HireInviteRequest req = body != null ? body : HireInviteRequest.builder().build();
+        BookingResponse response = bookingService.createDirectHireInvite(principal.getUserId(), mahirId, req.getMessage());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
