@@ -40,4 +40,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b WHERE b.customer.id = :customerId AND b.mahir.id = :mahirId AND b.job IS NULL AND b.status NOT IN ('CANCELLED', 'COMPLETED') ORDER BY b.createdAt DESC")
     List<Booking> findActiveDirectBookingsBetween(@Param("customerId") Long customerId, @Param("mahirId") Long mahirId, Pageable pageable);
+
+    List<Booking> findByJob_Id(Long jobId);
 }

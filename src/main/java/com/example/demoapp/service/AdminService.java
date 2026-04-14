@@ -4,6 +4,7 @@ import com.example.demoapp.dto.*;
 import com.example.demoapp.entity.*;
 import com.example.demoapp.exception.BadRequestException;
 import com.example.demoapp.exception.ResourceNotFoundException;
+import com.example.demoapp.exception.UnauthorizedException;
 import com.example.demoapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -34,6 +35,8 @@ public class AdminService {
     private final ReviewRepository reviewRepository;
     private final ChatThreadRepository chatThreadRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final SupportThreadRepository supportThreadRepository;
+    private final SupportMessageRepository supportMessageRepository;
     private final FaqRepository faqRepository;
     private final MembershipPlanRepository membershipPlanRepository;
     private final UserMembershipRepository userMembershipRepository;
@@ -75,7 +78,7 @@ public class AdminService {
         }
         user.setBlocked(Boolean.TRUE.equals(request.getBlocked()));
         user.setBlockedAt(user.isBlocked() ? Instant.now() : null);
-        user.setBlockedReason(user.isBlocked() ? request.getReason() : null);
+        user.setBlockedReason(user.isBlocked() ? request.resolveReason() : null);
         userRepository.save(user);
         return toAdminUserResponse(user);
     }
@@ -100,15 +103,38 @@ public class AdminService {
     }
 
     public Page<AdminChatThreadResponse> listSupportThreads(Pageable pageable) {
-        return chatThreadRepository.findAllByOrderByCreatedAtDesc(pageable)
-                .map(this::toChatThreadResponse);
+        return supportThreadRepository.findAllByOrderByUpdatedAtDesc(pageable)
+                .map(this::toAdminSupportThreadResponse);
     }
 
     public Page<ChatMessageResponse> listThreadMessagesForSupport(Long threadId, Pageable pageable) {
-        ChatThread thread = chatThreadRepository.findById(threadId)
-                .orElseThrow(() -> new ResourceNotFoundException("Chat thread", threadId));
-        return chatMessageRepository.findByThreadOrderByCreatedAtAsc(thread, pageable)
-                .map(this::toChatMessageResponse);
+        SupportThread thread = supportThreadRepository.findById(threadId)
+                .orElseThrow(() -> new ResourceNotFoundException("Support thread", threadId));
+        return supportMessageRepository.findByThreadOrderByCreatedAtAsc(thread, pageable)
+                .map(this::toSupportChatMessageResponse);
+    }
+
+    @Transactional
+    public ChatMessageResponse postSupportAdminMessage(Long threadId, Long adminUserId, ChatMessageRequest request) {
+        SupportThread thread = supportThreadRepository.findById(threadId)
+                .orElseThrow(() -> new ResourceNotFoundException("Support thread", threadId));
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", adminUserId));
+        if (admin.getRole() != Role.ADMIN) {
+            throw new UnauthorizedException("Only admins can post to support threads");
+        }
+        if (request.getContent() == null || request.getContent().isBlank()) {
+            throw new BadRequestException("content is required");
+        }
+        SupportMessage msg = SupportMessage.builder()
+                .thread(thread)
+                .sender(admin)
+                .content(request.getContent().trim())
+                .build();
+        msg = supportMessageRepository.save(msg);
+        thread.setUpdatedAt(Instant.now());
+        supportThreadRepository.save(thread);
+        return toSupportChatMessageResponse(msg);
     }
 
     public List<FaqResponse> listAllFaqs() {
@@ -355,6 +381,18 @@ public class AdminService {
         if (request.getPhoneNumber() != null) {
             user.setPhoneNumber(request.getPhoneNumber().isBlank() ? null : request.getPhoneNumber().trim());
         }
+        if (request.getAccountType() != null) {
+            if (user.getRole() == Role.ADMIN) {
+                throw new BadRequestException("Cannot change account type for ADMIN");
+            }
+            user.setAccountType(request.getAccountType());
+        }
+        if (request.getCredits() != null) {
+            if (user.getRole() != Role.MAHIR) {
+                throw new BadRequestException("Credits can only be set for Mahir accounts");
+            }
+            user.setCredits(request.getCredits());
+        }
         userRepository.save(user);
         return toAdminUserResponse(user);
     }
@@ -416,6 +454,14 @@ public class AdminService {
     public AdminUserMembershipDetailResponse getUserMembershipAdmin(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        AdminUserMembershipDetailResponse detail = buildUserMembershipDetail(user);
+        if (detail.getActive() == null && (detail.getHistory() == null || detail.getHistory().isEmpty())) {
+            throw new ResourceNotFoundException("User membership", userId);
+        }
+        return detail;
+    }
+
+    private AdminUserMembershipDetailResponse buildUserMembershipDetail(User user) {
         List<UserMembership> all = userMembershipRepository.findByUserOrderByCreatedAtDesc(user);
         UserMembership active = userMembershipRepository.findByUserAndStatus(user, UserMembershipStatus.ACTIVE)
                 .orElse(null);
@@ -443,7 +489,14 @@ public class AdminService {
             active.setExpiresAt(request.getExpiresAt());
             userMembershipRepository.save(active);
         }
-        return getUserMembershipAdmin(userId);
+        if (request.getCredits() != null) {
+            if (user.getRole() != Role.MAHIR) {
+                throw new BadRequestException("Credits can only be set for Mahir accounts");
+            }
+            user.setCredits(request.getCredits());
+            userRepository.save(user);
+        }
+        return buildUserMembershipDetail(user);
     }
 
     @Transactional
@@ -474,14 +527,60 @@ public class AdminService {
         if (request.getStatus() != null) {
             job.setStatus(request.getStatus());
         }
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
+            job.setTitle(request.getTitle().trim());
+        }
+        if (request.getDescription() != null) {
+            job.setDescription(request.getDescription());
+        }
+        if (request.getModerationBlocked() != null) {
+            job.setModerationBlocked(Boolean.TRUE.equals(request.getModerationBlocked()));
+        }
+        if (request.getHiddenFromPublic() != null) {
+            job.setHiddenFromPublic(Boolean.TRUE.equals(request.getHiddenFromPublic()));
+        }
+        if (Boolean.FALSE.equals(request.getFeedVisible())) {
+            job.setHiddenFromPublic(true);
+        }
+        if (Boolean.TRUE.equals(request.getFeedVisible())) {
+            job.setHiddenFromPublic(false);
+        }
+        if (Boolean.FALSE.equals(request.getPubliclyVisible())) {
+            job.setHiddenFromPublic(true);
+        }
+        if (Boolean.TRUE.equals(request.getPubliclyVisible())) {
+            job.setHiddenFromPublic(false);
+        }
         jobRepository.save(job);
         return toJobResponse(job);
     }
 
     public AdminChatThreadResponse getSupportChatThread(Long threadId) {
-        ChatThread thread = chatThreadRepository.findById(threadId)
-                .orElseThrow(() -> new ResourceNotFoundException("Chat thread", threadId));
-        return toChatThreadResponse(thread);
+        SupportThread thread = supportThreadRepository.findById(threadId)
+                .orElseThrow(() -> new ResourceNotFoundException("Support thread", threadId));
+        return toAdminSupportThreadResponse(thread);
+    }
+
+    public JobResponse getJobByIdForAdmin(Long jobId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", jobId));
+        return toJobResponse(job);
+    }
+
+    @Transactional
+    public void deleteJobByAdmin(Long jobId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", jobId));
+        for (Booking b : bookingRepository.findByJob_Id(job.getId())) {
+            reviewRepository.findByBookingId(b.getId()).ifPresent(reviewRepository::delete);
+            chatThreadRepository.findByBookingId(b.getId()).ifPresent(thread -> {
+                chatMessageRepository.deleteByThread(thread);
+                chatThreadRepository.delete(thread);
+            });
+            bookingRepository.delete(b);
+        }
+        bidRepository.deleteAll(bidRepository.findByJob_Id(job.getId()));
+        jobRepository.delete(job);
     }
 
     private void validatePlanAudience(MembershipPlan plan, Role userRole) {
@@ -548,6 +647,8 @@ public class AdminService {
                 .durationHours(job.getDurationHours())
                 .status(job.getStatus())
                 .bidCount(bidCount)
+                .hiddenFromPublic(job.isHiddenFromPublic())
+                .moderationBlocked(job.isModerationBlocked())
                 .createdAt(job.getCreatedAt())
                 .updatedAt(job.getUpdatedAt())
                 .build();
@@ -568,35 +669,40 @@ public class AdminService {
                 .build();
     }
 
-    private AdminChatThreadResponse toChatThreadResponse(ChatThread t) {
-        Booking b = t.getBooking();
-        User c = b.getCustomer();
-        User m = b.getMahir();
-        Job j = b.getJob();
+    private AdminChatThreadResponse toAdminSupportThreadResponse(SupportThread t) {
+        User u = t.getUser();
         return AdminChatThreadResponse.builder()
+                .id(t.getId())
                 .threadId(t.getId())
-                .bookingId(b.getId())
-                .jobId(j != null ? j.getId() : null)
-                .jobTitle(j != null ? j.getTitle() : null)
-                .customerId(c.getId())
-                .customerName(c.getFullName())
-                .customerEmail(c.getEmail())
-                .mahirId(m.getId())
-                .mahirName(m.getFullName())
-                .mahirEmail(m.getEmail())
+                .userId(u.getId())
+                .userRole(u.getRole().name())
+                .type("SUPPORT")
+                .bookingId(null)
+                .jobId(null)
+                .jobTitle(null)
+                .customerId(null)
+                .customerName(null)
+                .customerEmail(null)
+                .mahirId(null)
+                .mahirName(null)
+                .mahirEmail(null)
                 .threadCreatedAt(t.getCreatedAt())
                 .build();
     }
 
-    private ChatMessageResponse toChatMessageResponse(com.example.demoapp.entity.ChatMessage msg) {
+    private ChatMessageResponse toSupportChatMessageResponse(SupportMessage msg) {
+        User s = msg.getSender();
         return ChatMessageResponse.builder()
                 .id(msg.getId())
                 .threadId(msg.getThread().getId())
-                .senderId(msg.getSender().getId())
-                .senderName(msg.getSender().getFullName())
+                .senderId(s.getId())
+                .senderName(s.getFullName())
+                .senderRole(s.getRole().name())
+                .fromAdmin(s.getRole() == Role.ADMIN)
                 .content(msg.getContent())
                 .createdAt(msg.getCreatedAt())
-                .readAt(msg.getReadAt())
+                .sentAt(msg.getCreatedAt())
+                .readAt(null)
                 .build();
     }
 

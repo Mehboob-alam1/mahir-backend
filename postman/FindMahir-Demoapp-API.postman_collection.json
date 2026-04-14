@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews. **MAHIR** accounts are stored as **FREEMIUM** at signup and when admin creates a Mahir; use membership for premium Mahir plans.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD + **POST /api/admin/banners/upload** (multipart `file` → imageUrl), public GET **/api/files/banners/{uuid.ext}**, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId, notificationId, reviewId, planId, faqId, bannerId. **Hire from profile:** POST `/api/users/{mahirId}/hire-invite` (USER only) → use `chatThreadId` with chat APIs. **Bid apply:** POST bid response includes `chatThreadId` for messaging before accept. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
+    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews. **MAHIR** accounts are stored as **FREEMIUM** at signup and when admin creates a Mahir; use membership for premium Mahir plans.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD + **POST /api/admin/banners/upload** (multipart `file` → imageUrl), public GET **/api/files/banners/{uuid.ext}**, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId (booking chat), **supportThreadId** (in-app support), notificationId, reviewId, planId, faqId, bannerId. **Support:** USER/MAHIR → folder **Support in-app** (`/api/support/chats`); ADMIN → **Admin** support endpoints (same thread id). **Admin jobs:** GET/PATCH/DELETE `/api/admin/jobs/{id}` (moderation: hiddenFromPublic, moderationBlocked, title/description). **Categories:** canonical names incl. **Other** — see Get All Categories. **Hire from profile:** POST `/api/users/{mahirId}/hire-invite` (USER only) → use `chatThreadId` with chat APIs. **Bid apply:** POST bid response includes `chatThreadId` for messaging before accept. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -14,6 +14,7 @@
     { "key": "bidId", "value": "" },
     { "key": "bookingId", "value": "" },
     { "key": "threadId", "value": "" },
+    { "key": "supportThreadId", "value": "" },
     { "key": "notificationId", "value": "" },
     { "key": "resetToken", "value": "" },
     { "key": "reviewId", "value": "" },
@@ -409,7 +410,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/categories",
-            "description": "List service categories for MAHIR signup. No auth required."
+            "description": "Canonical service categories (exact names for Flutter `AppServiceCategories`): Home Cleaning, Electrician, Plumbing, AC Services, Appliance Repair, Carpentry, Painting & Renovation, Pest Control, Home Shifting, Handyman Services, Delivery Boy, Home Cheff, Cleaner, Teachers, Makeup Artist, Driver, **Other**. Match jobs/Mahir signup by **id**. No auth."
           }
         }
       ]
@@ -875,6 +876,89 @@
       ]
     },
     {
+      "name": "Support in-app",
+      "item": [
+        {
+          "name": "List My Support Threads",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var json = pm.response.json();",
+                "  if (json.content && json.content.length > 0) {",
+                "    var t = json.content[0].threadId || json.content[0].id;",
+                "    if (t) pm.collectionVariables.set('supportThreadId', t);",
+                "  }",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/support/chats?page=0&size=20",
+            "description": "**USER or MAHIR** only. In-app support threads (not booking chat). Same **threadId** as admin support inbox. Saves **supportThreadId**."
+          }
+        },
+        {
+          "name": "Create Support Thread",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  var json = pm.response.json();",
+                "  var t = json.threadId || json.id;",
+                "  if (t) pm.collectionVariables.set('supportThreadId', t);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/support/chats",
+            "description": "Creates a new support thread for the current user. **201** — saves **supportThreadId**."
+          }
+        },
+        {
+          "name": "Get Support Thread",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/support/chats/{{supportThreadId}}",
+            "description": "Thread summary (owner only). Set **supportThreadId**."
+          }
+        },
+        {
+          "name": "Get Support Messages",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/support/chats/{{supportThreadId}}/messages?page=0&size=50",
+            "description": "Paged messages. Optional fields: **senderRole**, **fromAdmin**, **sentAt** (mirrors createdAt)."
+          }
+        },
+        {
+          "name": "Send Support Message",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"I need help with my account.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/support/chats/{{supportThreadId}}/messages",
+            "description": "**201** — user reply in support thread. Body: `{ \"content\": \"...\" }` (required, max 4000)."
+          }
+        }
+      ]
+    },
+    {
       "name": "Notifications",
       "item": [
         {
@@ -895,7 +979,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/notifications?page=0&size=20",
-            "description": "Paginated list: title, body, type, referenceId (e.g. bookingId, jobId), read, createdAt. Types: NEW_JOB, BID_RECEIVED, BID_ACCEPTED, BOOKING_CONFIRMED, BID_REJECTED, JOB_CANCELLED, BOOKING_STATUS_*, BOOKING_COMPLETED, JOB_COMPLETED, BOOKING_CANCELLED, CHAT_MESSAGE, NEW_REVIEW."
+            "description": "Paginated: title, body, type, relatedId (e.g. bookingId, jobId, **support threadId**), read, createdAt. Types include: NEW_JOB, BID_*, BOOKING_*, CHAT_MESSAGE, **HIRE_INVITE** (relatedId=bookingId), NEW_REVIEW, …"
           }
         },
         {
@@ -1131,10 +1215,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"blocked\": false,\n  \"blockedReason\": null,\n  \"accountStatus\": \"ACTIVE\",\n  \"fullName\": null,\n  \"email\": null,\n  \"phoneNumber\": null\n}"
+              "raw": "{\n  \"blocked\": false,\n  \"blockedReason\": null,\n  \"accountStatus\": \"ACTIVE\",\n  \"accountType\": \"FREEMIUM\",\n  \"credits\": 5,\n  \"fullName\": null,\n  \"email\": null,\n  \"phoneNumber\": null\n}"
             },
             "url": "{{baseUrl}}/api/admin/users/{{userId}}",
-            "description": "Partial update. accountStatus: ACTIVE | ON_HOLD | DEACTIVATED (non-ACTIVE blocks login). Omit nulls you do not want to change."
+            "description": "Partial update. **accountStatus:** ACTIVE | ON_HOLD | DEACTIVATED. **Mahir:** `accountType` / `account_type` (FREEMIUM | PREMIUM), `credits` / `credit_balance`. **blocked**, blockedReason, fullName, email, phoneNumber. Omit fields you do not change."
           }
         },
         {
@@ -1148,7 +1232,7 @@
               "raw": "{\n  \"blocked\": true,\n  \"reason\": \"Terms violation\"\n}"
             },
             "url": "{{baseUrl}}/api/admin/users/{{userId}}/block",
-            "description": "Set blocked true/false. Cannot block ADMIN accounts."
+            "description": "`{ \"blocked\": true, \"reason\": \"...\" }` — **reason** or **blocked_reason**. Cannot block ADMIN."
           }
         },
         {
@@ -1178,21 +1262,39 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/admin/jobs?page=0&size=20",
-            "description": "All jobs (newest first), includes poster and bidCount. Saves first jobId."
+            "description": "All jobs (newest first). Response includes **hiddenFromPublic**, **moderationBlocked**, bidCount, poster. Saves first **jobId**."
           }
         },
         {
-          "name": "Patch Job (admin - status)",
+          "name": "Get Job by ID (admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/jobs/{{jobId}}",
+            "description": "Full job for moderation UI. Set **jobId**."
+          }
+        },
+        {
+          "name": "Patch Job (admin - moderation)",
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"OPEN\"\n}"
+              "raw": "{\n  \"status\": \"OPEN\",\n  \"title\": \"Updated title\",\n  \"description\": \"Updated description\",\n  \"hiddenFromPublic\": false,\n  \"moderationBlocked\": false,\n  \"feedVisible\": true,\n  \"publiclyVisible\": true\n}"
             },
             "url": "{{baseUrl}}/api/admin/jobs/{{jobId}}",
-            "description": "status: OPEN | ASSIGNED | CANCELLED | COMPLETED. Set jobId."
+            "description": "Partial update; unknown JSON keys ignored. **status:** OPEN | ASSIGNED | CANCELLED | COMPLETED. **Copy:** title / jobTitle, description / jobDescription. **Hide from Mahir job feed:** hiddenFromPublic, hidden, adminHidden, or feedVisible/publiclyVisible=false. **Block:** moderationBlocked, jobBlocked, blocked (job). Set **jobId**."
+          }
+        },
+        {
+          "name": "Delete Job (admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/jobs/{{jobId}}",
+            "description": "**204** — removes job and related bookings/bids/chat (destructive). Set **jobId**."
           }
         },
         {
@@ -1252,7 +1354,7 @@
               "exec": [
                 "if (pm.response.code === 200) {",
                 "  var json = pm.response.json();",
-                "  if (json.content && json.content.length > 0 && json.content[0].threadId) pm.collectionVariables.set('threadId', json.content[0].threadId);",
+                "  if (json.content && json.content.length > 0 && json.content[0].threadId) pm.collectionVariables.set('supportThreadId', json.content[0].threadId);",
                 "}"
               ],
               "type": "text/javascript"
@@ -1262,7 +1364,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/admin/support/chats?page=0&size=20",
-            "description": "Customer support: all booking chat threads. Saves first threadId to collection (overwrites booking chat threadId)."
+            "description": "**In-app support** threads (USER/MAHIR ↔ admin). **Not** booking chat. Saves first **supportThreadId** (same id as `/api/support/chats`)."
           }
         },
         {
@@ -1270,8 +1372,8 @@
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
-            "url": "{{baseUrl}}/api/admin/support/chats/{{threadId}}",
-            "description": "Single thread metadata (booking, customer, mahir). Set threadId."
+            "url": "{{baseUrl}}/api/admin/support/chats/{{supportThreadId}}",
+            "description": "**type** = SUPPORT. **userId** / **userRole** = participant for profile deep-link. **id** = **threadId**. Set **supportThreadId**."
           }
         },
         {
@@ -1279,8 +1381,22 @@
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
-            "url": "{{baseUrl}}/api/admin/support/chats/{{threadId}}/messages?page=0&size=50",
-            "description": "Read-only messages for a thread. Use threadId from List Support Chat Threads."
+            "url": "{{baseUrl}}/api/admin/support/chats/{{supportThreadId}}/messages?page=0&size=50",
+            "description": "Paged messages. **senderRole**, **fromAdmin**, **sentAt** on each message. Set **supportThreadId**."
+          }
+        },
+        {
+          "name": "Post Support Reply (admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello, we are looking into this.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/support/chats/{{supportThreadId}}/messages",
+            "description": "**201** — admin sends reply. Body `{ \"content\": \"...\" }`. Caller must be **ADMIN** JWT. Set **supportThreadId**."
           }
         },
         {
@@ -1489,7 +1605,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/admin/users/{{userId}}/membership",
-            "description": "active row + full history for userId."
+            "description": "**200** — `active` + `history`. **404** if user has never had any membership row (no active and empty history)."
           }
         },
         {
@@ -1500,10 +1616,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"planId\": {{planId}},\n  \"expiresAt\": null\n}"
+              "raw": "{\n  \"planId\": {{planId}},\n  \"expiresAt\": null,\n  \"credits\": 10\n}"
             },
             "url": "{{baseUrl}}/api/admin/users/{{userId}}/membership",
-            "description": "If planId set: replaces active membership (same rules as POST assign). If only expiresAt: updates active row. Use null expiresAt for open-ended."
+            "description": "**planId** + optional **expiresAt** (replace active plan). **expiresAt** only (active row). **credits** (Mahir only): set WhatsApp credit balance without changing plan."
           }
         },
         {

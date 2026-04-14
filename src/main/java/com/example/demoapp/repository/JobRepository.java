@@ -33,6 +33,8 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     @Query("SELECT j FROM Job j WHERE j.status = :status AND (:categoryId IS NULL OR j.category.id = :categoryId) ORDER BY j.createdAt DESC")
     Page<Job> findOpenJobs(@Param("status") JobStatus status, @Param("categoryId") Long categoryId, Pageable pageable);
 
-    @Query("SELECT j FROM Job j WHERE j.status = :status AND j.postedBy.blocked = false AND (:categoryId IS NULL OR j.category.id = :categoryId) ORDER BY j.createdAt DESC")
+    @Query("SELECT j FROM Job j WHERE j.status = :status AND j.postedBy.blocked = false "
+            + "AND j.hiddenFromPublic = false AND j.moderationBlocked = false "
+            + "AND (:categoryId IS NULL OR j.category.id = :categoryId) ORDER BY j.createdAt DESC")
     Page<Job> findPublicOpenJobs(@Param("status") JobStatus status, @Param("categoryId") Long categoryId, Pageable pageable);
 }

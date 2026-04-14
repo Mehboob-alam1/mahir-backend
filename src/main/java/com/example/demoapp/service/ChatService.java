@@ -103,13 +103,17 @@ public class ChatService {
     }
 
     private ChatMessageResponse toMessageResponse(ChatMessage m) {
+        User s = m.getSender();
         return ChatMessageResponse.builder()
                 .id(m.getId())
                 .threadId(m.getThread().getId())
-                .senderId(m.getSender().getId())
-                .senderName(m.getSender().getFullName())
+                .senderId(s.getId())
+                .senderName(s.getFullName())
+                .senderRole(s.getRole().name())
+                .fromAdmin(s.getRole() == Role.ADMIN)
                 .content(m.getContent())
                 .createdAt(m.getCreatedAt())
+                .sentAt(m.getCreatedAt())
                 .readAt(m.getReadAt())
                 .build();
     }

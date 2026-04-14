@@ -13,4 +13,6 @@ public class AdminPatchMembershipRequest {
 
     private Long planId;
     private Instant expiresAt;
+    /** Optional: set Mahir credit balance when patching membership. */
+    private Integer credits;
 }

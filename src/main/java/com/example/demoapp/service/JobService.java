@@ -89,6 +89,10 @@ public class JobService {
 
     public JobResponse getById(Long jobId, Long userId) {
         Job job = jobRepository.findById(jobId).orElseThrow(() -> new ResourceNotFoundException("Job", jobId));
+        boolean owner = job.getPostedBy().getId().equals(userId);
+        if (!owner && (job.isHiddenFromPublic() || job.isModerationBlocked())) {
+            throw new ResourceNotFoundException("Job", jobId);
+        }
         return toResponse(job);
     }
 
@@ -186,6 +190,8 @@ public class JobService {
                 .durationHours(j.getDurationHours())
                 .status(j.getStatus())
                 .bidCount(bidCount)
+                .hiddenFromPublic(j.isHiddenFromPublic())
+                .moderationBlocked(j.isModerationBlocked())
                 .createdAt(j.getCreatedAt())
                 .updatedAt(j.getUpdatedAt())
                 .build();

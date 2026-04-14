@@ -59,6 +59,16 @@ public class Job {
     @Builder.Default
     private JobStatus status = JobStatus.OPEN;
 
+    /** Admin: hide job from public open-job feeds (Mahir browse). */
+    @Column(name = "hidden_from_public", nullable = false)
+    @Builder.Default
+    private boolean hiddenFromPublic = false;
+
+    /** Admin moderation: job blocked from public feeds (stronger hide). */
+    @Column(name = "moderation_blocked", nullable = false)
+    @Builder.Default
+    private boolean moderationBlocked = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

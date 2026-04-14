@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     budget_max DECIMAL(12,2),
     duration_hours INTEGER,
     status VARCHAR(20) NOT NULL,
+    hidden_from_public BOOLEAN NOT NULL DEFAULT FALSE,
+    moderation_blocked BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
@@ -176,6 +178,24 @@ CREATE TABLE IF NOT EXISTS user_notification_preferences (
     rating_reminders BOOLEAN NOT NULL DEFAULT TRUE,
     promotions_and_tips BOOLEAN NOT NULL DEFAULT TRUE,
     your_account BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS hidden_from_public BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS moderation_blocked BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS support_threads (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS support_messages (
+    id BIGSERIAL PRIMARY KEY,
+    thread_id BIGINT NOT NULL REFERENCES support_threads(id) ON DELETE CASCADE,
+    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content VARCHAR(4000) NOT NULL,
+    created_at TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS banners (

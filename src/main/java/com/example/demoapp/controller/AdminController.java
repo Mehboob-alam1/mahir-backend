@@ -15,6 +15,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -140,6 +141,17 @@ public class AdminController {
         return ResponseEntity.ok(adminService.listAllJobs(pageable));
     }
 
+    @GetMapping("/jobs/{id}")
+    public ResponseEntity<JobResponse> getJob(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getJobByIdForAdmin(id));
+    }
+
+    @DeleteMapping("/jobs/{id}")
+    public ResponseEntity<Void> deleteJob(@PathVariable Long id) {
+        adminService.deleteJobByAdmin(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/reviews")
     public ResponseEntity<Page<ReviewResponse>> listReviews(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -183,6 +195,18 @@ public class AdminController {
             @PathVariable Long threadId,
             @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(adminService.listThreadMessagesForSupport(threadId, pageable));
+    }
+
+    @PostMapping("/support/chats/{threadId}/messages")
+    public ResponseEntity<ChatMessageResponse> postSupportMessage(
+            @AuthenticationPrincipal com.example.demoapp.security.UserPrincipal principal,
+            @PathVariable Long threadId,
+            @Valid @RequestBody ChatMessageRequest request) {
+        if (principal == null) {
+            throw new com.example.demoapp.exception.UnauthorizedException("Authentication required");
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(adminService.postSupportAdminMessage(threadId, principal.getUserId(), request));
     }
 
     @GetMapping("/faqs")

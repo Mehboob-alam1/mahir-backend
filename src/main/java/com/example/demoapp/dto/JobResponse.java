@@ -29,6 +29,8 @@ public class JobResponse {
     private Integer durationHours;
     private JobStatus status;
     private Integer bidCount;
+    private Boolean hiddenFromPublic;
+    private Boolean moderationBlocked;
     private Instant createdAt;
     private Instant updatedAt;
 }

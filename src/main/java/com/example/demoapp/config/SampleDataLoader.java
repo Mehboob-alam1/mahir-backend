@@ -65,14 +65,14 @@ public class SampleDataLoader implements ApplicationRunner {
             }
 
             Category plumbing = cat("Plumbing");
-            Category electrical = cat("Electrical");
-            Category cleaning = cat("Cleaning");
+            Category electrical = cat("Electrician");
+            Category cleaning = cat("Home Cleaning");
             Category carpentry = cat("Carpentry");
-            Category painting = cat("Painting");
-            Category ac = cat("AC & HVAC");
+            Category painting = cat("Painting & Renovation");
+            Category ac = cat("AC Services");
             Category pest = cat("Pest Control");
-            Category moving = cat("Moving");
-            Category landscaping = cat("Landscaping");
+            Category moving = cat("Home Shifting");
+            Category landscaping = cat("Handyman Services");
 
             User nadia = userRepository.save(User.builder()
                     .fullName("Nadia Mansour")

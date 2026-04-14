@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -30,6 +31,8 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
     Page<Bid> findByMahirAndStatusOrderByCreatedAtDesc(User mahir, BidStatus status, Pageable pageable);
 
     Optional<Bid> findByJobIdAndMahirId(Long jobId, Long mahirId);
+
+    List<Bid> findByJob_Id(Long jobId);
 
     Page<Bid> findByJobAndMahirOrderByCreatedAtDesc(Job job, User mahir, Pageable pageable);
 
