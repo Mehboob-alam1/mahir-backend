@@ -27,33 +27,50 @@ if [ ! -f .env.production ]; then
   echo "ERROR: $REMOTE_DIR/.env.production missing on the server."
   echo "Create it with at least:"
   echo "  SPRING_PROFILES_ACTIVE=railway"
-  echo "  DATABASE_URL=postgresql://mahir:YOUR_PASSWORD@postgres:5432/mahir_db"
+  echo "  DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require"
+  echo "  (Docker Postgres on same VM: ...@postgres:5432/mahir_db — no sslmode needed)"
   echo "  APP_JWT_SECRET=long-random-secret-at-least-32-chars"
   echo "Optional: APP_FIREBASE_SERVICE_ACCOUNT_JSON=... (single line JSON or use base64 var)"
   exit 1
 fi
 
+# External managed Postgres (e.g. DigitalOcean) if DATABASE_URL does not point at Compose service "postgres"
+DATABASE_URL_VAL="$(grep -m1 '^DATABASE_URL=' .env.production | sed 's/^DATABASE_URL=//' | tr -d '\r')"
+USE_DOCKER_POSTGRES=0
+case "$DATABASE_URL_VAL" in
+  *"@postgres:"*|*"@postgres."*) USE_DOCKER_POSTGRES=1 ;;
+esac
+
 git pull origin main
 
-# Optional: .env.postgres with POSTGRES_PASSWORD=... (must match DATABASE_URL password)
-if [ -f .env.postgres ]; then
-  docker compose --env-file .env.postgres up -d postgres
+if [ "$USE_DOCKER_POSTGRES" -eq 1 ]; then
+  if [ -f .env.postgres ]; then
+    docker compose --env-file .env.postgres up -d postgres
+  else
+    docker compose up -d postgres
+  fi
 else
-  docker compose up -d postgres
+  echo "DATABASE_URL is not @postgres — skipping local docker Postgres (managed/external DB)."
 fi
 
 docker build -t mahir-api .
 
 docker rm -f mahir-api 2>/dev/null || true
 
-NET=$(docker inspect mahir-postgres -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
-echo "Docker network: $NET"
-
-docker run -d --name mahir-api --restart unless-stopped \
-  --network "$NET" \
-  -p 8080:8080 \
-  --env-file .env.production \
-  mahir-api
+if [ "$USE_DOCKER_POSTGRES" -eq 1 ]; then
+  NET=$(docker inspect mahir-postgres -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+  echo "Docker network: $NET"
+  docker run -d --name mahir-api --restart unless-stopped \
+    --network "$NET" \
+    -p 8080:8080 \
+    --env-file .env.production \
+    mahir-api
+else
+  docker run -d --name mahir-api --restart unless-stopped \
+    -p 8080:8080 \
+    --env-file .env.production \
+    mahir-api
+fi
 
 echo "Done. Test: curl -s http://127.0.0.1:8080/health"
 curl -s http://127.0.0.1:8080/health || true

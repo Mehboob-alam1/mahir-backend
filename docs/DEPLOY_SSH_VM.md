@@ -1,5 +1,33 @@
 # Deploy this backend to a VM over SSH
 
+## DigitalOcean Managed PostgreSQL (recommended for production)
+
+If the database is **not** on the VM (e.g. DigitalOcean **DBaaS**), you **do not** start `docker compose` Postgres. Put the full URL in **`.env.production`** on the server:
+
+```env
+SPRING_PROFILES_ACTIVE=railway
+DATABASE_URL=postgresql://doadmin:ENCODED_PASSWORD@dbaas-db-....ondigitalocean.com:25060/defaultdb?sslmode=require
+APP_JWT_SECRET=...openssl rand base64 48...
+PORT=8080
+APP_RESET_PASSWORD_BASE_URL=http://YOUR_DROPLET_IP:8080
+```
+
+**Password in the URL:** special characters (`$`, `&`, `@`, `#`, etc.) must be **percent-encoded** or JDBC will parse the URL wrong. On your Mac:
+
+```bash
+python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" 'your-raw-db-password'
+```
+
+Paste the printed string as the password segment in `DATABASE_URL` (after `doadmin:`).
+
+**Firewall:** the Droplet must be allowed to reach the DB host on port **25060** (DigitalOcean often allows all Droplets in the same account/VPC by default; check DB **Trusted sources**).
+
+**Deploy script:** `scripts/deploy-remote.sh` detects external DB: if `DATABASE_URL` does **not** contain `@postgres:`, it skips local Postgres and runs only the API container.
+
+**Security:** never paste production passwords into chat or commit `.env.production`. Rotate any credential that was exposed.
+
+---
+
 ## A) Connect with SSH (from Mac Terminal)
 
 ```bash
