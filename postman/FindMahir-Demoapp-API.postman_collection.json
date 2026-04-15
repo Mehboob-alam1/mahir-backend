@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FindMahir Demoapp API",
-    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews. **MAHIR** accounts are stored as **FREEMIUM** at signup and when admin creates a Mahir; use membership for premium Mahir plans.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans, **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard** (summary, engagement), **banners** CRUD + **POST /api/admin/banners/upload** (multipart `file` → imageUrl), public GET **/api/files/banners/{uuid.ext}**, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId (booking chat), **supportThreadId** (in-app support), notificationId, reviewId, planId, faqId, bannerId. **Support:** USER/MAHIR → folder **Support in-app** (`/api/support/chats`); ADMIN → **Admin** support endpoints (same thread id). **Admin jobs:** GET/PATCH/DELETE `/api/admin/jobs/{id}` (moderation: hiddenFromPublic, moderationBlocked, title/description). **Categories:** canonical names incl. **Other** — see Get All Categories. **Hire from profile:** POST `/api/users/{mahirId}/hire-invite` (USER only) → use `chatThreadId` with chat APIs. **Bid apply:** POST bid response includes `chatThreadId` for messaging before accept. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
+    "description": "Find Mahir API: Auth (USER, MAHIR; ADMIN only via DB/seed), JWT includes **role** claim (re-login after backend upgrade). Jobs, Bids, Bookings, Chat, Notifications, Users, Mahirs, Reviews. **MAHIR** accounts are stored as **FREEMIUM** at signup and when admin creates a Mahir; use membership for premium Mahir plans.\n\n**Public (no auth):** GET /api/categories, /api/mahirs, /api/faqs, GET /api/membership-plans (optional **?audience=MAHIR** or **USER** — server filters MAHIR/USER+BOTH), **GET /api/banners** (optional Bearer refines USER/MAHIR audience).\n\n**Users (auth):** GET/POST **/api/users/me/membership** (subscribe, cancel). **Account settings:** GET/PATCH **/api/users/me/notification-preferences**; POST multipart **/api/users/me/profile-picture** (field `file`); DELETE **/api/users/me/profile-picture**; public GET **/api/files/avatars/{userId}**; POST **/api/users/me/change-password**; POST **/api/users/me/deactivate**; DELETE **/api/users/me** or POST **/api/users/me/delete** with `{ \"confirm\": \"DELETE\" }`. User objects include **profilePictureUrl** (and avatarUrl). **Auth:** POST **/auth/logout** (client discards JWTs).\n\n**Admin:** Bearer token with ROLE_ADMIN — folder **Admin** → /api/admin/* including **dashboard**; **GET /api/admin/membership-plans** returns one object with the **same** plan array under **content**, **plans**, **items**, **results**, and **data.content** (parse any key your client expects). Mahir plan assign/subscribe syncs **accountType** + **credits** (Freemium/3 vs Premium/high) from plan name/code server-side. (summary, engagement), **banners** CRUD + **POST /api/admin/banners/upload** (multipart `file` → imageUrl), public GET **/api/files/banners/{uuid.ext}**, users (search, patch, create, delete), user membership detail/patch/revoke, jobs/reviews patch, support chat detail, FAQs & plans PUT+PATCH.\n\n**baseUrl:** Collection variable. Change to your VPS, Railway, or http://localhost:8080.\n\n**Setup:** Sign In; use Bearer {{accessToken}}. Variables: userId, mahirId, jobId, bidId, bookingId, threadId (booking chat), **supportThreadId** (in-app support), notificationId, reviewId, planId, faqId, bannerId. **Support:** USER/MAHIR → folder **Support in-app** (`/api/support/chats`); ADMIN → **Admin** support endpoints (same thread id). **Admin jobs:** GET/PATCH/DELETE `/api/admin/jobs/{id}` (moderation: hiddenFromPublic, moderationBlocked, title/description). **Categories:** canonical names incl. **Other** — see Get All Categories. **Hire from profile:** POST `/api/users/{mahirId}/hire-invite` (USER only) → use `chatThreadId` with chat APIs. **Bid apply:** POST bid response includes `chatThreadId` for messaging before accept. Seed admin (sample data): admin.portal@findmahir.app / Password123!",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -430,8 +430,8 @@
           "name": "Get Membership Plans (active)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/membership-plans",
-            "description": "Active plans for pricing/subscribe UI. Filter client-side by audience (USER, MAHIR, BOTH). No auth."
+            "url": "{{baseUrl}}/api/membership-plans?audience=MAHIR",
+            "description": "Active plans for pricing/subscribe UI. **Query (optional):** `audience=MAHIR` → only plans with audience MAHIR or BOTH; `audience=USER` → USER or BOTH; omit → all active. Response: **JSON array** of plan objects (`id`, `name`, `code`, `audience`, `priceMonthly`, `currency`, `featuresText`, `active`, `sortOrder`, …). Use returned **numeric id** as planId for subscribe/admin assign. No auth."
           }
         },
         {
@@ -539,7 +539,7 @@
               "raw": "{\n  \"planId\": {{planId}}\n}"
             },
             "url": "{{baseUrl}}/api/users/me/membership/subscribe",
-            "description": "Subscribe to planId (must match role vs plan audience). Cancels previous active membership. Set planId from GET /api/membership-plans."
+            "description": "Subscribe to **planId** from GET /api/membership-plans (real server id). Must match role vs plan audience. Cancels previous active membership. For **MAHIR**, server syncs **accountType** + **credits** from plan name/code (freemium vs premium)."
           }
         },
         {
@@ -1491,7 +1491,14 @@
               "exec": [
                 "if (pm.response.code === 200) {",
                 "  var json = pm.response.json();",
-                "  if (Array.isArray(json) && json.length > 0 && json[0].id) pm.collectionVariables.set('planId', json[0].id);",
+                "  var list = null;",
+                "  if (Array.isArray(json)) list = json;",
+                "  else if (json && Array.isArray(json.content)) list = json.content;",
+                "  else if (json && Array.isArray(json.plans)) list = json.plans;",
+                "  else if (json && Array.isArray(json.items)) list = json.items;",
+                "  else if (json && Array.isArray(json.results)) list = json.results;",
+                "  else if (json && json.data && Array.isArray(json.data.content)) list = json.data.content;",
+                "  if (list && list.length > 0 && list[0].id) pm.collectionVariables.set('planId', list[0].id);",
                 "}"
               ],
               "type": "text/javascript"
@@ -1501,7 +1508,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/admin/membership-plans",
-            "description": "All plans including inactive. Sets planId from first plan."
+            "description": "All plans including inactive. **200 body:** one object — same array under **content**, **plans**, **items**, **results**, and **nested** `data.content`. Plan objects: **id** (use as planId), **name**, **code**, **audience** (USER | MAHIR | BOTH), **priceMonthly**, **currency**, **featuresText**, **active**, **sortOrder**, etc. Test script sets **planId** from first element of whichever array is present."
           }
         },
         {
@@ -1587,7 +1594,7 @@
               "raw": "{\n  \"planId\": {{planId}},\n  \"expiresAt\": null\n}"
             },
             "url": "{{baseUrl}}/api/admin/users/{{userId}}/membership",
-            "description": "Cancels previous ACTIVE membership for this user. planId must match user role vs plan audience. expiresAt optional ISO instant."
+            "description": "Cancels previous ACTIVE membership for this user. Body: **planId** (integer from list plans). **expiresAt** optional (ISO-8601 instant). planId must match user role vs plan audience. For **MAHIR**, server sets **accountType** + **credits** from plan (e.g. name/code contains freemium → FREEMIUM + 3; premium → PREMIUM + high balance)."
           }
         },
         {

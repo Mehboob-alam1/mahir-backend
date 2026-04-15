@@ -26,6 +26,7 @@ public class UserMembershipSelfService {
     private final UserRepository userRepository;
     private final MembershipPlanRepository membershipPlanRepository;
     private final UserMembershipRepository userMembershipRepository;
+    private final MembershipPlanUserSyncService membershipPlanUserSyncService;
 
     public MyMembershipResponse getMyMembership(Long userId) {
         User user = userRepository.findById(userId)
@@ -73,7 +74,9 @@ public class UserMembershipSelfService {
                 .expiresAt(null)
                 .status(UserMembershipStatus.ACTIVE)
                 .build();
-        return toMembershipRow(userMembershipRepository.save(um));
+        UserMembership saved = userMembershipRepository.save(um);
+        membershipPlanUserSyncService.onPlanAssigned(user, plan);
+        return toMembershipRow(saved);
     }
 
     @Transactional
@@ -84,6 +87,7 @@ public class UserMembershipSelfService {
                 .orElseThrow(() -> new BadRequestException("No active membership"));
         active.setStatus(UserMembershipStatus.CANCELLED);
         userMembershipRepository.save(active);
+        membershipPlanUserSyncService.onMembershipCancelled(user);
     }
 
     private void validatePlanAudience(MembershipPlan plan, Role userRole) {

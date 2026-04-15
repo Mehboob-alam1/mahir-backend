@@ -44,6 +44,7 @@ public class AdminService {
     private final BookingRepository bookingRepository;
     private final PasswordEncoder passwordEncoder;
     private final CategoryRepository categoryRepository;
+    private final MembershipPlanUserSyncService membershipPlanUserSyncService;
 
     public Page<UserResponse> listUsers(String search, Role role, Boolean blocked, Pageable pageable) {
         String q = search != null ? search.trim() : "";
@@ -282,7 +283,9 @@ public class AdminService {
                 .expiresAt(request.getExpiresAt())
                 .status(UserMembershipStatus.ACTIVE)
                 .build();
-        return toMembershipRow(userMembershipRepository.save(um));
+        UserMembership saved = userMembershipRepository.save(um);
+        membershipPlanUserSyncService.onPlanAssigned(user, plan);
+        return toMembershipRow(saved);
     }
 
     @Transactional
@@ -293,6 +296,7 @@ public class AdminService {
                 .orElseThrow(() -> new BadRequestException("No active membership for this user"));
         active.setStatus(UserMembershipStatus.CANCELLED);
         userMembershipRepository.save(active);
+        membershipPlanUserSyncService.onMembershipCancelled(user);
     }
 
     public AdminDashboardSummaryResponse getDashboardSummary() {

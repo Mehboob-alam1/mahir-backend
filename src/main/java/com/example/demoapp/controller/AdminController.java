@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -236,8 +238,15 @@ public class AdminController {
     }
 
     @GetMapping("/membership-plans")
-    public ResponseEntity<List<MembershipPlanResponse>> listPlans() {
-        return ResponseEntity.ok(adminService.listMembershipPlans());
+    public ResponseEntity<Map<String, Object>> listPlans() {
+        List<MembershipPlanResponse> list = adminService.listMembershipPlans();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("content", list);
+        body.put("plans", list);
+        body.put("items", list);
+        body.put("results", list);
+        body.put("data", Map.of("content", list));
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/membership-plans")

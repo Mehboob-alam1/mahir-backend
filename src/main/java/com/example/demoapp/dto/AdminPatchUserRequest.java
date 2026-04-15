@@ -19,7 +19,7 @@ public class AdminPatchUserRequest {
     @JsonAlias("account_type")
     private AccountType accountType;
 
-    @JsonAlias("credit_balance")
+    @JsonAlias({ "credit_balance", "creditBalance" })
     private Integer credits;
 
     private String fullName;
