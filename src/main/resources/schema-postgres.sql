@@ -19,12 +19,16 @@ CREATE TABLE IF NOT EXISTS users (
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
     account_type VARCHAR(20),
+    account_status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     role VARCHAR(20) NOT NULL,
     custom_service_name VARCHAR(200),
     avatar_url VARCHAR(500),
     bio VARCHAR(1000),
     credits INTEGER,
     fcm_token VARCHAR(500),
+    blocked BOOLEAN NOT NULL DEFAULT FALSE,
+    blocked_at TIMESTAMP,
+    blocked_reason VARCHAR(500),
     created_at TIMESTAMP NOT NULL
 );
 
