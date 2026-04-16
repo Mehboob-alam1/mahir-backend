@@ -1,5 +1,6 @@
 package com.example.demoapp.controller;
 
+import com.example.demoapp.catalog.ServiceCategoryCatalog;
 import com.example.demoapp.dto.CategoryResponse;
 import com.example.demoapp.entity.Category;
 import com.example.demoapp.repository.CategoryRepository;
@@ -10,23 +11,28 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/categories")
-@Tag(name = "Categories", description = "Service categories for MAHIR signup")
+@Tag(name = "Categories", description = "Fixed 17 service categories (Mahir signup + Post job); names match mobile exactly")
 @RequiredArgsConstructor
 public class CategoryController {
 
     private final CategoryRepository categoryRepository;
 
+    /**
+     * Returns exactly the 17 canonical categories in app order (not alphabetical).
+     * Omits any DB row whose name is not in {@link ServiceCategoryCatalog}.
+     */
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAll() {
-        List<CategoryResponse> list = categoryRepository.findAllByOrderByNameAsc()
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+        List<CategoryResponse> list = new ArrayList<>(ServiceCategoryCatalog.CANONICAL_COUNT);
+        for (String name : ServiceCategoryCatalog.NAMES_IN_DISPLAY_ORDER) {
+            categoryRepository.findByName(name)
+                    .ifPresent(c -> list.add(toResponse(c)));
+        }
         return ResponseEntity.ok(list);
     }
 
@@ -35,6 +41,7 @@ public class CategoryController {
                 .id(c.getId())
                 .name(c.getName())
                 .description(c.getDescription())
+                .sortOrder(c.getSortOrder())
                 .build();
     }
 }

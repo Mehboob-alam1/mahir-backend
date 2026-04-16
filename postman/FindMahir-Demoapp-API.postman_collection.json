@@ -410,7 +410,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/categories",
-            "description": "Canonical service categories (exact names for Flutter `AppServiceCategories`): Home Cleaning, Electrician, Plumbing, AC Services, Appliance Repair, Carpentry, Painting & Renovation, Pest Control, Home Shifting, Handyman Services, Delivery Boy, Home Cheff, Cleaner, Teachers, Makeup Artist, Driver, **Other**. Match jobs/Mahir signup by **id**. No auth."
+            "description": "Fixed **17** categories in **app display order** (not A–Z). Same `name` strings as Flutter `AppServiceCategories` (keep **Home Cheff**, **Delivery Boy**, etc.). Each item: `id`, `name`, `description`, `sortOrder` (1–17). Use `id` for `serviceCategoryIds` / `categoryId`. No auth."
           }
         }
       ]

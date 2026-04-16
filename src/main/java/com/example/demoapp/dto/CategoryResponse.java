@@ -14,4 +14,6 @@ public class CategoryResponse {
     private Long id;
     private String name;
     private String description;
+    /** Matches {@link com.example.demoapp.catalog.ServiceCategoryCatalog} display order (1–17). */
+    private Integer sortOrder;
 }

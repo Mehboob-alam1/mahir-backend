@@ -4,7 +4,8 @@
 CREATE TABLE IF NOT EXISTS categories (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
-    description VARCHAR(500)
+    description VARCHAR(500),
+    sort_order INTEGER NOT NULL DEFAULT 999
 );
 
 CREATE TABLE IF NOT EXISTS users (
