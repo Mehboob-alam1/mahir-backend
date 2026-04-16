@@ -1,6 +1,7 @@
--- Run once on an existing DigitalOcean / Postgres DB if login fails with
--- "relation ... does not exist" (often misread as "order does not exist")
--- or "column ... does not exist" after upgrading the API.
+-- Run once on an existing DigitalOcean / Postgres DB after upgrading the API if you see:
+-- - "relation ... does not exist" (often misread as "order does not exist")
+-- - "column ... sort_order does not exist" on categories (sign-in / Mahir profile / GET /api/categories)
+-- - missing user_service_categories or users.* columns
 -- Connect: psql "postgresql://doadmin:PASSWORD@HOST:25060/defaultdb?sslmode=require"
 -- Or use DO SQL console → Query.
 
@@ -18,3 +19,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status VARCHAR(20) NOT NULL D
 ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMP;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked_reason VARCHAR(500);
+
+-- categories.sort_order (required by JPA Category entity; without it, sign-in and GET /api/categories fail)
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 999;
