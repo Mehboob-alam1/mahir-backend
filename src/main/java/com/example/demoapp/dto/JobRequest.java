@@ -1,5 +1,7 @@
 package com.example.demoapp.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -22,6 +24,8 @@ public class JobRequest {
     private String description;
 
     @NotNull(message = "Category ID is required")
+    @JsonProperty("categoryId")
+    @JsonAlias({"category_id"})
     private Long categoryId;
 
     @Valid
