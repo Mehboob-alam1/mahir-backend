@@ -21,9 +21,4 @@ public class Category {
 
     @Column(length = 500)
     private String description;
-
-    /** 1–17 for canonical app categories; higher values sort after (legacy / admin-only rows). */
-    @Column(name = "sort_order", nullable = false)
-    @Builder.Default
-    private int sortOrder = 999;
 }

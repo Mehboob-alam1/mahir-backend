@@ -13,9 +13,10 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Ensures the 17 canonical categories exist with exact names and {@code sort_order} 1–17
- * (aligned with Flutter {@code AppServiceCategories.names}). Runs on every startup: upserts
- * missing rows and refreshes sort order / descriptions; does not delete extra DB rows.
+ * Ensures the 17 canonical categories exist with exact names (aligned with Flutter
+ * {@code AppServiceCategories.names}). Display order is defined only in
+ * {@link com.example.demoapp.catalog.ServiceCategoryCatalog} — not stored on {@code categories}
+ * so production DBs never need a {@code sort_order} column on that table.
  */
 @Component
 @Order(50)
@@ -54,22 +55,19 @@ public class CategoryDataLoader implements ApplicationRunner {
             }
             for (int i = 0; i < names.size(); i++) {
                 String name = names.get(i);
-                int sortOrder = i + 1;
                 String description = DESCRIPTIONS.get(i);
                 categoryRepository.findByName(name).ifPresentOrElse(
                         existing -> {
-                            existing.setSortOrder(sortOrder);
                             existing.setDescription(description);
                             categoryRepository.save(existing);
                         },
                         () -> categoryRepository.save(Category.builder()
                                 .name(name)
                                 .description(description)
-                                .sortOrder(sortOrder)
                                 .build())
                 );
             }
-            log.info("Synced {} canonical service categories (sort_order 1–{})", names.size(), names.size());
+            log.info("Synced {} canonical service categories", names.size());
         } catch (Exception e) {
             log.warn("Could not sync default categories: {}", e.getMessage());
         }

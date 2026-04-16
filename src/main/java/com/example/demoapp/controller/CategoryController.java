@@ -37,11 +37,13 @@ public class CategoryController {
     }
 
     private CategoryResponse toResponse(Category c) {
+        int idx = ServiceCategoryCatalog.NAMES_IN_DISPLAY_ORDER.indexOf(c.getName());
+        Integer sortOrder = idx >= 0 ? idx + 1 : null;
         return CategoryResponse.builder()
                 .id(c.getId())
                 .name(c.getName())
                 .description(c.getDescription())
-                .sortOrder(c.getSortOrder())
+                .sortOrder(sortOrder)
                 .build();
     }
 }
